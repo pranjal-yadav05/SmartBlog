@@ -1,0 +1,140 @@
+"use client";
+
+import { useEffect, useState } from "react"
+import Image from "next/image"
+import Link from "next/link"
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+
+export function FeaturedPosts() {
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+  const [featuredPosts, setFeaturedPosts] = useState([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState(null)
+
+  useEffect(() => {
+    const fetchPosts = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/posts/`)
+        
+        if (!response.ok) {
+          throw new Error('Failed to fetch posts')
+        }
+        
+        const data = await response.json()
+        
+        // Get the 3 most recent posts
+        const recentPosts = data
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .slice(0, 3)
+          
+        setFeaturedPosts(recentPosts)
+        setLoading(false)
+      } catch (err) {
+        setError(err.message)
+        setLoading(false)
+      }
+    }
+
+    fetchPosts()
+  }, [])
+
+  // Function to extract a short excerpt from the content
+  const getExcerpt = (content, maxLength = 120) => {
+    if (!content) return ""
+    if (content.length <= maxLength) return content
+    return content.substring(0, maxLength).trim() + "..."
+  }
+
+  // Function to format the date
+  const formatDate = (dateString) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    })
+  }
+
+  // Function to determine a category based on content
+  // This is a simple implementation since your model doesn't have a category field
+  const getCategory = (post) => {
+    const content = post.content?.toLowerCase() || ""
+    if (content.includes("react")) return "React"
+    if (content.includes("javascript")) return "JavaScript"
+    if (content.includes("css") || content.includes("tailwind")) return "CSS"
+    return "Web Development"
+  }
+
+  if (loading) {
+    return (
+      <section className="w-full py-12 md:py-24 bg-gray-50 dark:bg-gray-900">
+        <div className="container px-4 md:px-6 text-center">
+          <p>Loading featured posts...</p>
+        </div>
+      </section>
+    )
+  }
+
+  if (error) {
+    return (
+      <section className="w-full py-12 md:py-24 bg-gray-50 dark:bg-gray-900">
+        <div className="container px-4 md:px-6 text-center">
+          <p className="text-red-500">Error loading posts: {error}</p>
+        </div>
+      </section>
+    )
+  }
+
+  return (
+    <section className="w-full py-12 md:py-24 bg-gray-50 dark:bg-gray-900">
+      <div className="container px-4 md:px-6">
+        <div className="flex flex-col items-center justify-center space-y-4 text-center">
+          <div className="space-y-2">
+            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Featured Posts</h2>
+            <p className="max-w-[700px] text-gray-500 md:text-xl/relaxed dark:text-gray-400">
+              Discover our most popular and trending articles
+            </p>
+          </div>
+        </div>
+        <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 py-12 md:grid-cols-2 lg:grid-cols-3">
+          {featuredPosts.length > 0 ? (
+            featuredPosts.map((post) => (
+              <Card key={post.id} className="overflow-hidden">
+                <div className="relative h-48 w-full">
+                  <Image 
+                    src={`/placeholder.svg?height=200&width=400&text=${encodeURIComponent(post.title)}`} 
+                    alt={post.title} 
+                    fill 
+                    className="object-cover" 
+                  />
+                </div>
+                <CardHeader className="p-4">
+                  <div className="flex items-center justify-between">
+                    <Badge variant="secondary">{getCategory(post)}</Badge>
+                    <div className="text-sm text-gray-500">{formatDate(post.createdAt)}</div>
+                  </div>
+                  <Link href={`/blog/${post.id}`} className="hover:underline">
+                    <h3 className="text-xl font-bold leading-tight mt-2">{post.title}</h3>
+                  </Link>
+                </CardHeader>
+                <CardContent className="p-4 pt-0">
+                  <p className="text-gray-500 line-clamp-3">{getExcerpt(post.content)}</p>
+                </CardContent>
+                <CardFooter className="p-4 pt-0">
+                  <Link href={`/blog/${post.id}`} className="text-sm font-medium text-primary hover:underline">
+                    Read more
+                  </Link>
+                </CardFooter>
+              </Card>
+            ))
+          ) : (
+            <div className="col-span-full text-center py-8">
+              <p>No posts available at the moment.</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </section>
+  )
+}

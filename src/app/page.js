@@ -1,103 +1,128 @@
-import Image from "next/image";
+'use client';
+
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
+import { Header } from "@/components/header"
+import { FeaturedPosts } from "@/components/featured-posts"
+import { useState, useEffect } from "react"
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.js
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
+  useEffect(() => {
+    // Set mounted to true when component mounts in browser
+    setIsMounted(true);
+    
+    // Check localStorage for JWT
+    const token = localStorage.getItem('jwt');
+    setIsLoggedIn(!!token); 
+  }, []);
+
+  if (!isMounted) return null;
+
+  return (
+    <div className="flex min-h-screen flex-col">
+      <Header />
+      <main className="flex-1">
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-b from-white to-gray-100 dark:from-gray-900 dark:to-gray-800">
+          <div className="container px-4 md:px-6">
+            <div className="flex flex-col items-center justify-center space-y-4 text-center">
+              <div className="space-y-2">
+                <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl">
+                  Welcome to SmartBlog
+                </h1>
+                <p className="mx-auto max-w-[700px] text-gray-500 md:text-xl dark:text-gray-400">
+                  Your source for insightful articles, tutorials, and the latest trends in technology.
+                </p>
+              </div>
+              <div className="space-x-4">
+                {!isLoggedIn && (
+                  <Link href="/login">
+                    <Button>Get Started</Button>
+                  </Link>
+                )}
+
+                <Link href="/blog">
+                  <Button variant="outline">Explore Blog</Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <FeaturedPosts />
+
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-white dark:bg-gray-950">
+          <div className="container px-4 md:px-6">
+            <div className="mx-auto grid max-w-5xl items-center gap-6 py-12 lg:grid-cols-2 lg:gap-12">
+              <div className="space-y-4">
+                <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Join Our Community</h2>
+                <p className="text-gray-500 dark:text-gray-400">
+                  Create an account to get personalized content recommendations, save your favorite articles, and engage
+                  with other readers.
+                </p>
+                <div className="flex flex-col gap-2 min-[400px]:flex-row">
+                  <Link href="/login">
+                    <Button>Sign Up Now</Button>
+                  </Link>
+                </div>
+              </div>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Why Join SmartBlog?</CardTitle>
+                  <CardDescription>Benefits of creating an account</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-primary"></div>
+                    <p>Personalized content recommendations</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-primary"></div>
+                    <p>Save and organize your favorite articles</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-primary"></div>
+                    <p>Comment and engage with the community</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className="h-2 w-2 rounded-full bg-primary"></div>
+                    <p>Get notified about new content</p>
+                  </div>
+                </CardContent>
+                <CardFooter>
+                  <Link href="/login" className="w-full">
+                    <Button className="w-full">Create Account</Button>
+                  </Link>
+                </CardFooter>
+              </Card>
+            </div>
+          </div>
+        </section>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+      <footer className="w-full border-t bg-gray-100 py-6 dark:border-gray-800 dark:bg-gray-900">
+        <div className="container px-4 md:px-6">
+          <div className="flex flex-col items-center justify-center gap-4 md:flex-row md:gap-8">
+            <p className="text-center text-sm text-gray-500 dark:text-gray-400">
+              © {new Date().getFullYear()} SmartBlog. All rights reserved.
+            </p>
+            <div className="flex gap-4">
+              <Link href="#" className="text-sm text-gray-500 hover:underline dark:text-gray-400">
+                Terms
+              </Link>
+              <Link href="#" className="text-sm text-gray-500 hover:underline dark:text-gray-400">
+                Privacy
+              </Link>
+              <Link href="#" className="text-sm text-gray-500 hover:underline dark:text-gray-400">
+                Contact
+              </Link>
+            </div>
+          </div>
+        </div>
       </footer>
     </div>
-  );
+  )
 }
+
