@@ -60,6 +60,7 @@ const AuthForm = ({ isLogin }) => {
           const t = decodeJWT(token)
           localStorage.setItem('username',t.name)
           localStorage.setItem('email', t.email)
+          localStorage.setItem('profileImage',t.profileImage)
 
         }
   
@@ -78,7 +79,7 @@ const AuthForm = ({ isLogin }) => {
   const decodeJWT = (token) => {
     try {
       const payload = JSON.parse(atob(token.split(".")[1])) // Decode base64 payload
-      return {name: payload.name, email: payload.email} // Return the 'name' claim from the payload
+      return {name: payload.name, email: payload.email, profileImage: payload.profileImage} // Return the 'name' claim from the payload
     } catch (error) {
       console.error("Failed to decode JWT", error)
       return null
