@@ -194,7 +194,7 @@ export function Header() {
           )}
           
           {/* Only show auth buttons on desktop */}
-          <div className="hidden md:flex items-center gap-2">
+          <div className="hidden md:flex items-center gap-2 mr-2">
             {user ? (
               <div className="flex items-center gap-2">
                 <Button onClick={() => router.push('/profile')} variant="outline" size="sm" className="flex items-center gap-2">

@@ -91,73 +91,72 @@ export default function BlogPage() {
     }
   }, [isLoggedIn]);
   
+  const fetchBlogData = async () => {
+    try {
+      // Fetch all posts from the API
+      const response = await fetch(`${API_URL}/api/posts/`)
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch posts')
+      }
+      
+      const data = await response.json()
+      data.map(post => {console.log(post)})
+      // Process the data to match our frontend needs
+      const processedPosts = data.map(post => ({
+        id: post.id,
+        title: post.title,
+        excerpt: getExcerpt(post.content),
+        date: formatDate(post.createdAt),
+        author: {
+          name: post.author?.name || "Anonymous", // ✅ Keep name
+          email: post.author?.email || ""         // ✅ Add email
+        },// ✅ Fix: Access `name` instead of whole object
+        category: getCategoryFromContent(post.content),
+        imageUrl: post.imageUrl,
+        readTime: getReadTime(post.content),
+      }));
+      
+      // Sort posts by date (newest first)
+      const sortedPosts = processedPosts.sort((a, b) => 
+        new Date(b.date) - new Date(a.date)
+      )
+      
+      setBlogPosts(sortedPosts)
+      
+      // Extract categories from posts and count occurrences
+      const categoryMap = {}
+      processedPosts.forEach(post => {
+        if (categoryMap[post.category]) {
+          categoryMap[post.category]++
+        } else {
+          categoryMap[post.category] = 1
+        }
+      })
+      
+      const extractedCategories = Object.keys(categoryMap).map(name => ({
+        name,
+        count: categoryMap[name]
+      }))
+      
+      setCategories(extractedCategories)
+      
+      // Set recent posts (top 4 most recent)
+      setRecentPosts(sortedPosts.slice(0, 4).map(post => ({
+        id: post.id,
+        title: post.title,
+        date: post.date
+      })))
+      
+      setLoading(false)
+    } catch (err) {
+      console.error("Error fetching blog data:", err)
+      setError(err.message)
+      setLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchBlogData = async () => {
-      try {
-        // Fetch all posts from the API
-        const response = await fetch(`${API_URL}/api/posts/`)
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch posts')
-        }
-        
-        const data = await response.json()
-        data.map(post => {console.log(post)})
-        // Process the data to match our frontend needs
-        const processedPosts = data.map(post => ({
-          id: post.id,
-          title: post.title,
-          excerpt: getExcerpt(post.content),
-          date: formatDate(post.createdAt),
-          author: {
-            name: post.author?.name || "Anonymous", // ✅ Keep name
-            email: post.author?.email || ""         // ✅ Add email
-          },// ✅ Fix: Access `name` instead of whole object
-          category: getCategoryFromContent(post.content),
-          imageUrl: post.imageUrl,
-          readTime: getReadTime(post.content),
-        }));
-        
-        // Sort posts by date (newest first)
-        const sortedPosts = processedPosts.sort((a, b) => 
-          new Date(b.date) - new Date(a.date)
-        )
-        
-        setBlogPosts(sortedPosts)
-        
-        // Extract categories from posts and count occurrences
-        const categoryMap = {}
-        processedPosts.forEach(post => {
-          if (categoryMap[post.category]) {
-            categoryMap[post.category]++
-          } else {
-            categoryMap[post.category] = 1
-          }
-        })
-        
-        const extractedCategories = Object.keys(categoryMap).map(name => ({
-          name,
-          count: categoryMap[name]
-        }))
-        
-        setCategories(extractedCategories)
-        
-        // Set recent posts (top 4 most recent)
-        setRecentPosts(sortedPosts.slice(0, 4).map(post => ({
-          id: post.id,
-          title: post.title,
-          date: post.date
-        })))
-        
-        setLoading(false)
-      } catch (err) {
-        console.error("Error fetching blog data:", err)
-        setError(err.message)
-        setLoading(false)
-      }
-    }
-
     fetchBlogData()
   }, [])
 
@@ -214,7 +213,7 @@ export default function BlogPage() {
       if (!response.ok) throw new Error("Failed to create post");
   
       const createdPost = await response.json();
-      setBlogPosts(prevPosts => [createdPost, ...prevPosts]);
+      fetchBlogData();
       setNewPost({ title: "", content: "", category: "Web Development", authorEmail: '', image: null });
       setCreateDialogOpen(false);
       addToast({ title: "Post created", description: "Your post has been published!" });

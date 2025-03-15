@@ -123,7 +123,7 @@ export default function Profile() {
                 onError={(e) => (e.target.src = "/default-profile.jpg")}
               />
               <h1 className="text-4xl font-semibold">{userData.name}</h1>
-              <p className="text-lg text-gray-500 dark:text-gray-400">{userData.email}</p>
+              <p className="text-lg text-gray-500 dark:text-gray-400 mb-5">{userData.email}</p>
               <Link href="/setting">
                 <Button variant="outline">Edit Profile</Button>
               </Link>
@@ -131,7 +131,7 @@ export default function Profile() {
 
             {/* User's Posts */}
             <div className="mt-8">
-              <h2 className="text-3xl font-bold tracking-tighter md:text-4xl mb-5">Your Posts</h2>
+              <h2 className="text-3xl font-bold tracking-tighter md:text-4xl mb-5 text-center">Your Posts</h2>
               {userPosts.length > 0 ? (
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {userPosts.map((post) => (
@@ -140,9 +140,9 @@ export default function Profile() {
                         <CardTitle>{post.title}</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">
-                          {post.content?.substring(0, 100) || "A brief description of the post goes here..."}
-                        </p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-3">
+                        {post.content}
+                      </p>
                       </CardContent>
                       <CardFooter>
                         <Link href={`/blog/${post.id}`}>
@@ -154,8 +154,8 @@ export default function Profile() {
                 </div>
               ) : (
                 <div className="text-center py-8">
-                  <p className="text-gray-500 dark:text-gray-400">You haven't created any posts yet.</p>
-                  <Link href="/new-post">
+                  <p className="text-gray-500 dark:text-gray-400 mb-5">You haven't created any posts yet.</p>
+                  <Link href="/blog">
                     <Button>Create Your First Post</Button>
                   </Link>
                 </div>
