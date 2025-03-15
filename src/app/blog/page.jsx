@@ -37,6 +37,7 @@ export default function BlogPage() {
   const { addToast } = useToast();
   const [generating, setGenerating] = useState(false);
   const [loggedInEmail, setLoggedInEmail] = useState(null);
+  const [isCustomCategory, setIsCustomCategory] = useState(false);
 
   // Form state for creating a new post
 
@@ -101,7 +102,6 @@ export default function BlogPage() {
       }
       
       const data = await response.json()
-      data.map(post => {console.log(post)})
       // Process the data to match our frontend needs
       const processedPosts = data.map(post => ({
         id: post.id,
@@ -112,7 +112,7 @@ export default function BlogPage() {
           name: post.author?.name || "Anonymous", // ✅ Keep name
           email: post.author?.email || ""         // ✅ Add email
         },// ✅ Fix: Access `name` instead of whole object
-        category: getCategoryFromContent(post.content),
+        category: post.category || getCategoryFromContent(post.content),
         imageUrl: post.imageUrl,
         readTime: getReadTime(post.content),
       }));
@@ -294,11 +294,18 @@ export default function BlogPage() {
   
   
   const handleCategoryChange = (value) => {
-    setNewPost(prev => ({
-      ...prev,
-      category: value
-    }))
-  }
+    if (value === "custom") {
+      setIsCustomCategory(true);
+      // Don't reset the category here
+    } else {
+      setIsCustomCategory(false);
+      setNewPost(prev => ({
+        ...prev,
+        category: value
+      }));
+    }
+  };
+  
 
   // Helper functions
   const getExcerpt = (content, maxLength = 120) => {
@@ -539,20 +546,49 @@ export default function BlogPage() {
 
                   <div className="grid gap-2">
                     <Label htmlFor="category">Category</Label>
-                    <Select 
-                      value={newPost.category}
-                      onValueChange={handleCategoryChange}
+
+                    {/* Dropdown for categories */}
+                    <Select
+                      value={isCustomCategory ? "custom" : newPost.category} // Ensure correct value handling
+                      onValueChange={(value) => {
+                        if (value === "custom") {
+                          setIsCustomCategory(true); // Show input field
+                          setNewPost((prev) => ({ ...prev, category: "" })); // Reset category
+                        } else {
+                          setIsCustomCategory(false);
+                          setNewPost((prev) => ({ ...prev, category: value }));
+                        }
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                       <SelectContent>
-                        {availableCategories.map(category => (
-                          <SelectItem key={category} value={category}>{category}</SelectItem>
+                        {availableCategories.map((category) => (
+                          <SelectItem key={category} value={category}>
+                            {category}
+                          </SelectItem>
                         ))}
+                        <SelectItem value="custom">Write Your Own</SelectItem>
                       </SelectContent>
                     </Select>
+
+                    {/* Input field for custom category */}
+                    {isCustomCategory && (
+                      <Input
+                        type="text"
+                        placeholder="Enter your category"
+                        value={newPost.category}
+                        onChange={(e) =>
+                          setNewPost(prev => ({
+                            ...prev,
+                            category: e.target.value,
+                          }))
+                        }
+                      />
+                    )}
                   </div>
+
 
                   <div className="grid gap-2">
                     <Label htmlFor="image">Upload Image</Label>

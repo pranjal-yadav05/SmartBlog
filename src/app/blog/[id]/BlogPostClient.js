@@ -32,11 +32,11 @@ export default function BlogPostClient({ post }) {
           By <span className="font-medium">{post.author?.name || "Anonymous"}</span> •{" "}
           {post.formattedDate}
         </p>
-
+      
         {/* Cover Image */}
-        {post.coverImage ? (
+        {post.imageUrl ? (
           <img
-            src={post.coverImage}
+            src={post.imageUrl}
             alt={post.title}
             className="my-8 w-full rounded-lg shadow-md object-cover"
           />
