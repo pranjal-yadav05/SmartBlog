@@ -56,16 +56,6 @@ export function FeaturedPosts() {
     })
   }
 
-  // Function to determine a category based on content
-  // This is a simple implementation since your model doesn't have a category field
-  const getCategory = (post) => {
-    const content = post.content?.toLowerCase() || ""
-    if (content.includes("react")) return "React"
-    if (content.includes("javascript")) return "JavaScript"
-    if (content.includes("css") || content.includes("tailwind")) return "CSS"
-    return "Web Development"
-  }
-
   if (loading) {
     return (
       <section className="w-full py-12 md:py-24 bg-gray-50 dark:bg-gray-900">
@@ -111,7 +101,7 @@ export function FeaturedPosts() {
                 </div>
                 <CardHeader className="p-4">
                   <div className="flex items-center justify-between">
-                    <Badge variant="secondary">{getCategory(post)}</Badge>
+                    <Badge variant="secondary">{post.category}</Badge>
                     <div className="text-sm text-gray-500">{formatDate(post.createdAt)}</div>
                   </div>
                   <Link href={`/blog/${post.id}`} className="hover:underline">

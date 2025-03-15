@@ -6,7 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import { Github, Mail } from "lucide-react";
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Mail } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation"; // Changed from next/router to next/navigation
 
@@ -19,6 +20,7 @@ const AuthForm = ({ isLogin }) => {
   });
   const [error, setError] = useState(""); // Store error message for invalid login/registration
   const router = useRouter(); // Now using App Router's useRouter
+  const [open, setOpen] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -174,16 +176,28 @@ const AuthForm = ({ isLogin }) => {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <Button variant="outline" type="button" className="w-full">
-          <Github className="mr-2 h-4 w-4" />
-          Github
-        </Button>
-        <Button variant="outline" type="button" className="w-full">
+      <div className="grid grid-cols-1">
+        <Button variant="outline" type="button" className="w-full" onClick={() => setOpen(true)}>
           <Mail className="mr-2 h-4 w-4" />
           Google
         </Button>
       </div>
+
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Coming Soon 🚀</DialogTitle>
+            <DialogDescription>
+              This feature is under development and will be released soon.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="secondary">Close</Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {!isLogin && (
         <p className="text-xs text-center text-gray-500">
