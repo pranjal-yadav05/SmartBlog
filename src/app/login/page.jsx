@@ -4,6 +4,7 @@ import { useEffect, useState } from "react"
 import AuthForm from "@/components/auth-form"
 import { Header } from "@/components/header"
 import { useRouter } from "next/navigation"; // Note: Use next/navigation in App Router
+import Footer from "@/components/footer";
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true)
@@ -54,13 +55,7 @@ export default function LoginPage() {
           </div>
         </div>
       </main>
-      <footer className="w-full border-t bg-gray-100 py-6 dark:border-gray-800 dark:bg-gray-900">
-        <div className="container px-4 md:px-6">
-          <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-            © {new Date().getFullYear()} SmartBlog. All rights reserved.
-          </p>
-        </div>
-      </footer>
+      <Footer/>
     </div>
   )
 }

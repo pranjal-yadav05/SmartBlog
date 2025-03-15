@@ -103,7 +103,7 @@ export function FeaturedPosts() {
               <Card key={post.id} className="overflow-hidden">
                 <div className="relative h-48 w-full">
                   <Image 
-                    src={`/placeholder.svg?height=200&width=400&text=${encodeURIComponent(post.title)}`} 
+                    src={post.imageUrl || "/placeholder.svg"} 
                     alt={post.title} 
                     fill 
                     className="object-cover" 

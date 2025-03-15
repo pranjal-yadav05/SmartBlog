@@ -22,6 +22,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/components/ui/toast";
+import Footer from "@/components/footer";
 
 export default function BlogPage() {
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -59,27 +60,39 @@ export default function BlogPage() {
     "Web Development"
   ]
 
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+
   useEffect(() => {
-    const decodeJWT = (token) => {
-      try {
-        const payload = JSON.parse(atob(token.split(".")[1])) // Decode base64 payload
-        return {name: payload.name, email: payload.email} // Return the 'name' claim from the payload
-      } catch (error) {
-        console.error("Failed to decode JWT", error)
-        return null
-      }
-    }
+    // Set mounted to true when component mounts in browser
+    setIsMounted(true);
+    
+    // Check localStorage for JWT
+    const token = localStorage.getItem('jwt');
+    setIsLoggedIn(!!token); 
+  }, []);
 
-    if (typeof window !== "undefined") {
+  useEffect(() => {
+    if (isLoggedIn) {
+      const decodeJWT = (token) => {
+        try {
+          const payload = JSON.parse(atob(token.split(".")[1])); // Decode base64 payload
+          return { name: payload.name, email: payload.email }; // Return 'name' and 'email'
+        } catch (error) {
+          console.error("Failed to decode JWT", error);
+          return null;
+        }
+      };
+  
       const token = localStorage.getItem("jwt");
-      const email = decodeJWT(token)
-      setNewPost(prev => ({
-        ...prev, 
-        authorEmail: email.email
-      }));      
+      const email = decodeJWT(token);
       setLoggedInEmail(email.email);
+      setNewPost(prev => ({ ...prev, authorEmail: email.email }));
     }
+  }, [isLoggedIn]);
+  
 
+  useEffect(() => {
     const fetchBlogData = async () => {
       try {
         // Fetch all posts from the API
@@ -176,7 +189,11 @@ export default function BlogPage() {
 
   const handleCreatePost = async (e) => {
     e.preventDefault();
-    setSubmitting(true);
+    if (!isLoggedIn) {
+      addToast({ title: "Login Required", description: "You must be logged in to create a post." });
+      return;
+    }
+    setSubmitting(true)
   
     try {
       const formData = new FormData();
@@ -371,9 +388,9 @@ export default function BlogPage() {
               <div className="mb-8">
                 <div className="flex justify-between items-center mb-4">
                   <h1 className="text-3xl font-bold tracking-tight">Blog</h1>
-                  <Button onClick={() => setCreateDialogOpen(true)}>
+                  {isLoggedIn ? <Button onClick={() => setCreateDialogOpen(true)}>
                     <Plus className="mr-2 h-4 w-4" /> New Post
-                  </Button>
+                  </Button> : <>Login to Create Post</>}
                 </div>
                 <p className="text-gray-500 dark:text-gray-400 mb-6">
                   Explore the latest articles, tutorials, and insights on web development, design, and technology.
@@ -492,115 +509,94 @@ export default function BlogPage() {
           
           {/* Create Post Dialog */}
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-  <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
-    <DialogHeader>
-      <DialogTitle>Create New Blog Post</DialogTitle>
-    </DialogHeader>
-    <form onSubmit={handleCreatePost}>
-      <div className="grid gap-4 py-4">
-        <div className="grid gap-2">
-          <Label htmlFor="title">Title</Label>
-          <Input
-            id="title"
-            name="title"
-            placeholder="Enter post title"
-            value={newPost.title}
-            onChange={handleInputChange}
-            required
-          />
-        </div>
+            <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Create New Blog Post</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleCreatePost}>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="title">Title</Label>
+                    <Input
+                      id="title"
+                      name="title"
+                      placeholder="Enter post title"
+                      value={newPost.title}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
 
-        <div className="grid gap-2">
-          <Label htmlFor="author">Author Email</Label>
-          <Input
-            id="author"
-            name="author"
-            placeholder="Your email"
-            readOnly
-            value={newPost.authorEmail}
-          />
-        </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="author">Author Email</Label>
+                    <Input
+                      id="author"
+                      name="author"
+                      placeholder="Your email"
+                      readOnly
+                      value={newPost.authorEmail}
+                    />
+                  </div>
 
-        <div className="grid gap-2">
-          <Label htmlFor="category">Category</Label>
-          <Select 
-            value={newPost.category}
-            onValueChange={handleCategoryChange}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select a category" />
-            </SelectTrigger>
-            <SelectContent>
-              {availableCategories.map(category => (
-                <SelectItem key={category} value={category}>{category}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="category">Category</Label>
+                    <Select 
+                      value={newPost.category}
+                      onValueChange={handleCategoryChange}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableCategories.map(category => (
+                          <SelectItem key={category} value={category}>{category}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
 
-        <div className="grid gap-2">
-          <Label htmlFor="image">Upload Image</Label>
-          <Input
-            id="image"
-            type="file"
-            accept="image/*"
-            onChange={handleInputChange}
-          />
-        </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="image">Upload Image</Label>
+                    <Input
+                      id="image"
+                      type="file"
+                      accept="image/*"
+                      onChange={handleInputChange}
+                    />
+                  </div>
 
-        {/* ✅ Textarea with scrollability */}
-        <div className="grid gap-2">
-          <Label htmlFor="content">Content</Label>
-          <Textarea
-            id="content"
-            name="content"
-            placeholder="Write your blog post here or use AI to generate..."
-            className="h-[200px] max-h-[300px] overflow-y-auto"
-            value={newPost.content}
-            onChange={handleInputChange}
-            required
-          />
-        </div>
-      </div>
-      
-      <DialogFooter>
-        <Button type="button" variant="outline" onClick={handleGeneratePost} disabled={generating}>
-          {generating ? "Generating..." : "Generate with AI"}
-        </Button>
-        <DialogClose asChild>
-          <Button type="button" variant="outline">Cancel</Button>
-        </DialogClose>
-        <Button type="submit" disabled={submitting}>
-          {submitting ? "Publishing..." : "Publish Post"}
-        </Button>
-      </DialogFooter>
-    </form>
-  </DialogContent>
-</Dialog>
-
-
+                  {/* ✅ Textarea with scrollability */}
+                  <div className="grid gap-2">
+                    <Label htmlFor="content">Content</Label>
+                    <Textarea
+                      id="content"
+                      name="content"
+                      placeholder="Write your blog post here or use AI to generate..."
+                      className="h-[200px] max-h-[300px] overflow-y-auto"
+                      value={newPost.content}
+                      onChange={handleInputChange}
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <DialogFooter>
+                  <Button type="button" variant="outline" onClick={handleGeneratePost} disabled={generating}>
+                    {generating ? "Generating..." : "Generate with AI"}
+                  </Button>
+                  <DialogClose asChild>
+                    <Button type="button" variant="outline">Cancel</Button>
+                  </DialogClose>
+                  <Button type="submit" disabled={submitting}>
+                    {submitting ? "Publishing..." : "Publish Post"}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
       </main>
-      <footer className="w-full border-t bg-gray-100 py-6 dark:border-gray-800 dark:bg-gray-900">
-        <div className="container px-4 md:px-6">
-          <div className="flex flex-col items-center justify-center gap-4 md:flex-row md:gap-8">
-            <p className="text-center text-sm text-gray-500 dark:text-gray-400">
-              © {new Date().getFullYear()} SmartBlog. All rights reserved.
-            </p>
-            <div className="flex gap-4">
-              <Link href="#" className="text-sm text-gray-500 hover:underline dark:text-gray-400">
-                Terms
-              </Link>
-              <Link href="#" className="text-sm text-gray-500 hover:underline dark:text-gray-400">
-                Privacy
-              </Link>
-              <Link href="#" className="text-sm text-gray-500 hover:underline dark:text-gray-400">
-                Contact
-              </Link>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer/>
     </div>
   )
 }

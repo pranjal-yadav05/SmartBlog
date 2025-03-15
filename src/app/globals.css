@@ -8,6 +8,12 @@
 @tailwind components;
 @tailwind utilities;
 
+body,html{
+  height: 100%;
+  width: 100%;
+  margin: 0;
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -127,4 +133,14 @@
   body {
     @apply bg-background text-foreground;
   }
+}
+body{
+  font-family: "DM Sans", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: 400;
+}
+
+.logo{
+  font-family: "Rock Salt", cursive;
+  font-weight: 400;
 }
