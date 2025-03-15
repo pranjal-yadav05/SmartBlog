@@ -3,12 +3,14 @@ import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Clock, User, Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 const BlogCard = ({ post, onDelete, loggedInEmail }) => {
+  const router = useRouter()
   return (
     <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
       {/* Image Section */}
-      <div className="relative w-full h-48">
+      <div onClick={() => router.push(`/blog/${post.id}`)} className="relative w-full h-48 cursor-pointer">
         <Image
           src={post.imageUrl || "/placeholder.svg"}
           alt={post.title}
