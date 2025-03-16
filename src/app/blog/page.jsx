@@ -362,7 +362,10 @@ export default function BlogPage() {
       <div className="flex min-h-screen flex-col">
         <Header />
         <main className="flex-1 flex flex-col items-center justify-center text-center px-4">
+        <div className="flex items-center justify-center gap-2">
+          <Loader2 className="w-5 h-5 animate-spin shrink-0" />
           <p className="text-lg font-medium">Loading blog content...</p>
+        </div>
           <Dialog>
             <DialogTrigger asChild>
               <Button variant="outline" size="sm" className="mt-4 flex items-center gap-2">
