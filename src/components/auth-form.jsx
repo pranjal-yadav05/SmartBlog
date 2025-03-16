@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { Mail } from "lucide-react";
+import { Mail, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation"; // Changed from next/router to next/navigation
 
@@ -21,6 +21,7 @@ const AuthForm = ({ isLogin }) => {
   const [error, setError] = useState(""); // Store error message for invalid login/registration
   const router = useRouter(); // Now using App Router's useRouter
   const [open, setOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false)
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -29,13 +30,15 @@ const AuthForm = ({ isLogin }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-  
+    
     // Validation for registration: Confirm password match
     if (!isLogin && formData.password !== formData.confirmPassword) {
       setError("Passwords do not match!");
       return;
     }
-  
+    
+    setIsLoading(true)
+
     const endpoint = isLogin
       ? `${process.env.NEXT_PUBLIC_API_URL}/api/users/login`
       : `${process.env.NEXT_PUBLIC_API_URL}/api/users/register`;
@@ -75,6 +78,8 @@ const AuthForm = ({ isLogin }) => {
     } catch (err) {
       console.error("Error during authentication:", err);
       setError("An error occurred, please try again later.");
+    } finally{
+      setIsLoading(false)
     }
   };
   
@@ -163,10 +168,11 @@ const AuthForm = ({ isLogin }) => {
 
       {error && <p className="text-red-500 text-xs">{error}</p>} {/* Display error message */}
 
-      <Button type="submit" className="w-full">
+      <Button type="submit" className="w-full" disabled={isLoading}>
+        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
         {isLogin ? "Login" : "Register"}
       </Button>
-
+      
       <div className="relative">
         <div className="absolute inset-0 flex items-center">
           <Separator className="w-full" />

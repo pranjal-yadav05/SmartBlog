@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardFooter, CardTitle } from "@/componen
 import { Header } from "@/components/header";
 import { useState, useEffect } from "react";
 import Footer from "@/components/footer";
+import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Loader2 } from "lucide-react";
 
 export default function Profile() {
   const [userData, setUserData] = useState(null);
@@ -81,12 +83,40 @@ export default function Profile() {
     return (
       <div className="flex min-h-screen flex-col">
         <Header />
-        <main className="flex-1 flex items-center justify-center">
-          <h2 className="text-2xl font-bold">Loading profile...</h2>
+        <main className="flex-1 flex flex-col items-center justify-center gap-4">
+          <div className="flex items-center gap-2">
+            <Loader2 className="w-6 h-6 animate-spin" />
+            <h2 className="text-2xl font-bold">Loading profile...</h2>
+          </div>
+  
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="flex items-center gap-2">
+                Why is this slow?
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Why the Delay? ⏳</DialogTitle>
+                <DialogDescription>
+                  The server is running on a free-tier Render deployment, which goes to sleep when inactive.  
+                  Waking it up can take 50-60 seconds. Once started, it runs smoothly! 🚀  
+                  <br /><br />
+                  This is a temporary limitation due to budget constraints.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="secondary">Got it</Button>
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </main>
       </div>
     );
   }
+  
 
   if (!isLoggedIn) {
     return (

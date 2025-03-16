@@ -8,11 +8,14 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge"
 import { Search, Plus } from "lucide-react"
 import { 
   Dialog, 
   DialogContent, 
+  DialogTrigger,
+  DialogDescription,
   DialogHeader, 
   DialogTitle,
   DialogFooter,
@@ -358,15 +361,38 @@ export default function BlogPage() {
     return (
       <div className="flex min-h-screen flex-col">
         <Header />
-        <main className="flex-1 py-6 md:py-10">
-          <div className="container px-4 md:px-6 text-center">
-            <p>Loading blog content...</p>
-          </div>
+        <main className="flex-1 flex flex-col items-center justify-center text-center px-4">
+          <p className="text-lg font-medium">Loading blog content...</p>
+          <Dialog>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="mt-4 flex items-center gap-2">
+                Why is this slow?
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Why the Delay? ⏳</DialogTitle>
+                <DialogDescription>
+                  The server runs on a free-tier Render deployment, which means it goes to sleep when inactive. 
+                  Waking it up can take 50-60 seconds. Once started, it runs smoothly! 🚀  
+                  <br /><br />
+                  This is a temporary limitation due to budget constraints.
+                </DialogDescription>
+              </DialogHeader>
+              <DialogFooter>
+                <DialogClose asChild>
+                  <Button variant="secondary">Got it</Button>
+                </DialogClose>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </main>
+        <Footer />
       </div>
-    )
+    );
   }
-
+  
+  
   if (error) {
     return (
       <div className="flex min-h-screen flex-col">
@@ -617,13 +643,27 @@ export default function BlogPage() {
                 
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={handleGeneratePost} disabled={generating}>
-                    {generating ? "Generating..." : "Generate with AI"}
+                    {generating ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      "Generate with AI"
+                    )}
                   </Button>
                   <DialogClose asChild>
                     <Button type="button" variant="outline">Cancel</Button>
                   </DialogClose>
                   <Button type="submit" disabled={submitting}>
-                    {submitting ? "Publishing..." : "Publish Post"}
+                    {submitting ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Publishing...
+                      </>
+                    ) : (
+                      "Publish Post"
+                    )}
                   </Button>
                 </DialogFooter>
               </form>

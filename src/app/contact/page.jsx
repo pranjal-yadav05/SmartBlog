@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { Header } from "@/components/header";
 import Footer from "@/components/footer";
+import { Loader2 } from "lucide-react";
 
 const Contact = () => {
   const [formData, setFormData] = useState({
@@ -101,10 +102,17 @@ const Contact = () => {
             {successMessage && <div className="text-green-500 text-sm">{successMessage}</div>}
             <button
               type="submit"
-              className="w-full bg-black dark:bg-white dark:text-black text-white py-2 rounded-lg hover:bg-gray-800 dark:hover:bg-gray-300 transition duration-300"
+              className="w-full bg-black dark:bg-white dark:text-black text-white py-2 rounded-lg hover:bg-gray-800 dark:hover:bg-gray-300 transition duration-300 flex items-center justify-center"
               disabled={isSubmitting}
             >
-              {isSubmitting ? "Sending..." : "Send Message"}
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                "Send Message"
+              )}
             </button>
           </form>
         </div>
