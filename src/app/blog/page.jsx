@@ -14,8 +14,6 @@ import { Search, Plus } from "lucide-react"
 import { 
   Dialog, 
   DialogContent, 
-  DialogTrigger,
-  DialogDescription,
   DialogHeader, 
   DialogTitle,
   DialogFooter,
@@ -26,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useToast } from "@/components/ui/toast";
 import Footer from "@/components/footer";
+import LoadingScreen from "@/components/loading-screen";
 
 export default function BlogPage() {
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -361,38 +360,12 @@ export default function BlogPage() {
     return (
       <div className="flex min-h-screen flex-col">
         <Header />
-        <main className="flex-1 flex flex-col items-center justify-center text-center px-4">
-        <div className="flex items-center justify-center gap-2">
-          <Loader2 className="w-5 h-5 animate-spin shrink-0" />
-          <p className="text-lg font-medium">Loading blog content...</p>
-        </div>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="mt-4 flex items-center gap-2">
-                Why is this slow?
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Why the Delay? ⏳</DialogTitle>
-                <DialogDescription>
-                  The server runs on a free-tier Render deployment, which means it goes to sleep when inactive. 
-                  Waking it up can take 50-60 seconds. Once started, it runs smoothly! 🚀  
-                  <br /><br />
-                  This is a temporary limitation due to budget constraints.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="secondary">Got it</Button>
-                </DialogClose>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+        <main className="flex-1 flex items-center justify-center">
+          <LoadingScreen message="Loading blogs... Please wait a moment." />
         </main>
         <Footer />
       </div>
-    );
+    )
   }
   
   

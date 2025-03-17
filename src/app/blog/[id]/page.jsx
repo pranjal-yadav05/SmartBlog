@@ -9,7 +9,6 @@ export default async function BlogPostPage({ params }) {
     notFound();
   }
 
-  // Ensure consistent date formatting
   const formattedPost = {
     ...post,
     formattedDate: new Date(post.createdAt).toLocaleDateString("en-US", {

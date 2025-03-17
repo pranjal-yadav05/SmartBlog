@@ -1,8 +1,15 @@
-'use client';
+"use client";
 
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Header } from "@/components/header";
 import { FeaturedPosts } from "@/components/featured-posts";
 import { useState, useEffect } from "react";
@@ -15,10 +22,10 @@ export default function Home() {
   useEffect(() => {
     // Set mounted to true when component mounts in browser
     setIsMounted(true);
-    
+
     // Check localStorage for JWT
-    const token = localStorage.getItem('jwt');
-    setIsLoggedIn(!!token); 
+    const token = localStorage.getItem("jwt");
+    setIsLoggedIn(!!token);
   }, []);
 
   if (!isMounted) return null;
@@ -35,7 +42,8 @@ export default function Home() {
                   Welcome to <span className="mx-2 logo">SmartBlog</span>
                 </h1>
                 <p className="mx-auto max-w-[700px] text-gray-500 md:text-xl dark:text-gray-400">
-                  Your source for insightful articles, tutorials, and the latest trends in technology.
+                  Your source for insightful articles, tutorials, and the latest
+                  trends in technology.
                 </p>
               </div>
               <div className="space-x-4">
@@ -65,9 +73,12 @@ export default function Home() {
             <div className="container px-4 md:px-6">
               <div className="mx-auto grid max-w-5xl items-center gap-6 py-12 lg:grid-cols-2 lg:gap-12">
                 <div className="space-y-4">
-                  <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Welcome Back to SmartBlog!</h2>
+                  <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">
+                    Welcome Back to SmartBlog!
+                  </h2>
                   <p className="text-gray-500 dark:text-gray-400">
-                    Thanks for being a part of our community! Continue reading articles or manage your profile.
+                    Thanks for being a part of our community! Continue reading
+                    articles or manage your profile.
                   </p>
                   <div className="flex flex-col gap-2 min-[400px]:flex-row">
                     <Link href="/profile">
@@ -81,7 +92,9 @@ export default function Home() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Continue Your Journey</CardTitle>
-                    <CardDescription>Benefits of being a member</CardDescription>
+                    <CardDescription>
+                      Benefits of being a member
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     <div className="flex items-center gap-2">
@@ -110,9 +123,12 @@ export default function Home() {
             <div className="container px-4 md:px-6">
               <div className="mx-auto grid max-w-5xl items-center gap-6 py-12 lg:grid-cols-2 lg:gap-12">
                 <div className="space-y-4">
-                  <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Join Our Community</h2>
+                  <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">
+                    Join Our Community
+                  </h2>
                   <p className="text-gray-500 dark:text-gray-400">
-                    Create an account to get personalized content recommendations, save your favorite articles, and engage
+                    Create an account to get personalized content
+                    recommendations, save your favorite articles, and engage
                     with other readers.
                   </p>
                   <div className="flex flex-col gap-2 min-[400px]:flex-row">
@@ -124,7 +140,9 @@ export default function Home() {
                 <Card>
                   <CardHeader>
                     <CardTitle>Why Join SmartBlog?</CardTitle>
-                    <CardDescription>Benefits of creating an account</CardDescription>
+                    <CardDescription>
+                      Benefits of creating an account
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-2">
                     <div className="flex items-center gap-2">
@@ -154,9 +172,8 @@ export default function Home() {
             </div>
           </section>
         )}
-
       </main>
-      <Footer/>
+      <Footer />
     </div>
   );
 }

@@ -5,10 +5,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button";
-import { Loader2 } from "lucide-react";
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-
+import LoadingScreen from "./loading-screen";
 
 export function FeaturedPosts() {
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -61,43 +58,9 @@ export function FeaturedPosts() {
   }
 
   if (loading) {
-    return (
-      <section className="w-full py-12 md:py-24 bg-gray-50 dark:bg-gray-900">
-        <div className="container px-4 md:px-6 text-center">
-        <div className="flex items-center justify-center gap-2 text-center flex-wrap">
-          <Loader2 className="w-5 h-5 animate-spin shrink-0" />
-          <p className="text-sm sm:text-base">Loading featured posts... This may take up to a minute.</p>
-        </div>
-          <div className="flex justify-center mt-4">
-            <Dialog>
-              <DialogTrigger asChild>
-                <Button variant="outline" size="sm" className="flex items-center gap-2">
-                  Why is this slow?
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Why the Delay? ⏳</DialogTitle>
-                  <DialogDescription>
-                    The server runs on a free-tier Render deployment, which means it goes to sleep when inactive. 
-                    Waking it up can take 50-60 seconds. Once started, it runs smoothly! 🚀  
-                    <br /><br />
-                    This is a temporary limitation due to budget constraints.
-                  </DialogDescription>
-                </DialogHeader>
-                <DialogFooter>
-                  <DialogClose asChild>
-                    <Button variant="secondary">Got it</Button>
-                  </DialogClose>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-          </div>
-        </div>
-      </section>
-    );
+    return <LoadingScreen message="Loading featured posts... This may take up to a minute." />;
   }
-    
+  
 
   if (error) {
     return (
@@ -110,7 +73,7 @@ export function FeaturedPosts() {
   }
 
   return (
-    <section className="w-full py-12 md:py-24 bg-gray-50 dark:bg-gray-900">
+    <section className="w-full py-12 md:py-24 bg-gray-50 bgdark:bg-gray-900">
       <div className="container px-4 md:px-6">
         <div className="flex flex-col items-center justify-center space-y-4 text-center">
           <div className="space-y-2">

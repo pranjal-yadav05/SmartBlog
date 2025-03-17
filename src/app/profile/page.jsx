@@ -6,8 +6,7 @@ import { Card, CardContent, CardHeader, CardFooter, CardTitle } from "@/componen
 import { Header } from "@/components/header";
 import { useState, useEffect } from "react";
 import Footer from "@/components/footer";
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
-import { Loader2 } from "lucide-react";
+import LoadingScreen from "@/components/loading-screen";
 
 export default function Profile() {
   const [userData, setUserData] = useState(null);
@@ -83,38 +82,12 @@ export default function Profile() {
     return (
       <div className="flex min-h-screen flex-col">
         <Header />
-        <main className="flex-1 flex flex-col items-center justify-center gap-4">
-          <div className="flex items-center gap-2">
-            <Loader2 className="w-6 h-6 animate-spin" />
-            <h2 className="text-2xl font-bold">Loading profile...</h2>
-          </div>
-  
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button variant="outline" size="sm" className="flex items-center gap-2">
-                Why is this slow?
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Why the Delay? ⏳</DialogTitle>
-                <DialogDescription>
-                  The server is running on a free-tier Render deployment, which goes to sleep when inactive.  
-                  Waking it up can take 50-60 seconds. Once started, it runs smoothly! 🚀  
-                  <br /><br />
-                  This is a temporary limitation due to budget constraints.
-                </DialogDescription>
-              </DialogHeader>
-              <DialogFooter>
-                <DialogClose asChild>
-                  <Button variant="secondary">Got it</Button>
-                </DialogClose>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
+        <main className="flex-1 flex items-center justify-center">
+          <LoadingScreen message="Loading profile... Fetching your details." />;
         </main>
+        <Footer />
       </div>
-    );
+    )
   }
   
 
@@ -122,19 +95,18 @@ export default function Profile() {
     return (
       <div className="flex min-h-screen flex-col">
         <Header />
-        <main className="flex-1">
-          <section className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-b from-white to-gray-100 dark:from-gray-900 dark:to-gray-800">
-            <div className="container px-4 md:px-6 text-center">
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl">Please Log In</h2>
-              <p className="text-gray-500 md:text-xl dark:text-gray-400">
+        <main className="flex-1 flex items-center justify-center">
+        <div className="container px-4 md:px-6 text-center">
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl mb-4">Please Log In</h2>
+              <p className="text-gray-500 md:text-xl dark:text-gray-400 mb-4">
                 {error || "You need to be logged in to access the profile page."}
               </p>
               <Link href="/login">
                 <Button>Log In</Button>
               </Link>
             </div>
-          </section>
         </main>
+        <Footer />
       </div>
     );
   }

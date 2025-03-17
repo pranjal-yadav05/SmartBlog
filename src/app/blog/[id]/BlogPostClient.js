@@ -1,15 +1,35 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import rehypeRaw from "rehype-raw"; // Allows HTML inside Markdown (Remove if unsafe)
+import rehypeRaw from "rehype-raw";
 import { Header } from "@/components/header";
 import Footer from "@/components/footer";
+import LoadingScreen from "@/components/loading-screen"; // Import your loading component
 
 export default function BlogPostClient({ post }) {
   const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
 
+  useEffect(() => {
+    if (post) {
+      setIsLoading(false);
+    }
+  }, [post]);
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen flex-col">
+        <Header />
+        <main className="flex-1 flex items-center justify-center">
+          <LoadingScreen message="Loading Blog Post..." />;
+        </main>
+        <Footer />
+      </div>
+    )
+  }
   return (
     <>
       <Header />
@@ -47,26 +67,23 @@ export default function BlogPostClient({ post }) {
             className="my-8 w-full rounded-lg shadow-md object-cover"
           />
         )}
-        {console.log(post.content)}
+
         {/* Markdown Content */}
         <article className="prose lg:prose-xl dark:prose-invert leading-relaxed">
-  <ReactMarkdown
-    remarkPlugins={[remarkGfm]}
-    rehypePlugins={[rehypeRaw]}
-    components={{
-      h1: ({ node, ...props }) => <h1 className="text-4xl font-bold mt-6 mb-4" {...props} />,
-      h2: ({ node, ...props }) => <h2 className="text-3xl font-semibold mt-5 mb-3" {...props} />,
-      h3: ({ node, ...props }) => <h3 className="text-2xl font-medium mt-4 mb-2" {...props} />,
-      p: ({ node, ...props }) => <p className="text-lg leading-relaxed mb-4" {...props} />,
-    }}
-  >
-    {post.content}
-  </ReactMarkdown>
-</article>
-
-
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            rehypePlugins={[rehypeRaw]}
+            components={{
+              h1: ({ node, ...props }) => <h1 className="text-4xl font-bold mt-6 mb-4" {...props} />,
+              h2: ({ node, ...props }) => <h2 className="text-3xl font-semibold mt-5 mb-3" {...props} />,
+              h3: ({ node, ...props }) => <h3 className="text-2xl font-medium mt-4 mb-2" {...props} />,
+              p: ({ node, ...props }) => <p className="text-lg leading-relaxed mb-4" {...props} />,
+            }}
+          >
+            {post.content}
+          </ReactMarkdown>
+        </article>
       </div>
-
       <Footer />
     </>
   );
