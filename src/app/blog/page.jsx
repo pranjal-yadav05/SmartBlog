@@ -1,41 +1,47 @@
 "use client";
 
-import { useEffect, useState } from "react"
-import Link from "next/link"
-import { Header } from "@/components/header"
-import BlogCard from "@/components/blog-card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Header } from "@/components/header";
+import BlogCard from "@/components/blog-card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
-import { Badge } from "@/components/ui/badge"
-import { Search, Plus } from "lucide-react"
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
+import { Badge } from "@/components/ui/badge";
+import { Search, Plus } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
   DialogTitle,
   DialogFooter,
-  DialogClose
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import Footer from "@/components/footer";
 import LoadingScreen from "@/components/loading-screen";
 
 export default function BlogPage() {
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
-  const [blogPosts, setBlogPosts] = useState([])
-  const [categories, setCategories] = useState([])
-  const [recentPosts, setRecentPosts] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState("All")
-  const [createDialogOpen, setCreateDialogOpen] = useState(false)
+  const [blogPosts, setBlogPosts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [recentPosts, setRecentPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("All");
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const { addToast } = useToast();
   const [generating, setGenerating] = useState(false);
   const [loggedInEmail, setLoggedInEmail] = useState(null);
@@ -47,21 +53,21 @@ export default function BlogPage() {
     title: "",
     content: "",
     category: "Web Development",
-    authorEmail: '',
+    authorEmail: "",
     image: null,
-  })
-  
-  const [submitting, setSubmitting] = useState(false)
-  
+  });
+
+  const [submitting, setSubmitting] = useState(false);
+
   // Available categories for the dropdown
   const availableCategories = [
-    "React", 
-    "JavaScript", 
-    "CSS", 
-    "Accessibility", 
-    "Performance", 
-    "Web Development"
-  ]
+    "React",
+    "JavaScript",
+    "CSS",
+    "Accessibility",
+    "Performance",
+    "Web Development",
+  ];
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
@@ -69,10 +75,10 @@ export default function BlogPage() {
   useEffect(() => {
     // Set mounted to true when component mounts in browser
     setIsMounted(true);
-    
+
     // Check localStorage for JWT
-    const token = localStorage.getItem('jwt');
-    setIsLoggedIn(!!token); 
+    const token = localStorage.getItem("jwt");
+    setIsLoggedIn(!!token);
   }, []);
 
   useEffect(() => {
@@ -86,139 +92,156 @@ export default function BlogPage() {
           return null;
         }
       };
-  
+
       const token = localStorage.getItem("jwt");
       const email = decodeJWT(token);
       setLoggedInEmail(email.email);
-      setNewPost(prev => ({ ...prev, authorEmail: email.email }));
+      setNewPost((prev) => ({ ...prev, authorEmail: email.email }));
     }
   }, [isLoggedIn]);
-  
+
   const fetchBlogData = async () => {
     try {
       // Fetch all posts from the API
-      const response = await fetch(`${API_URL}/api/posts/`)
-      
+      const response = await fetch(`${API_URL}/api/posts/`);
+
       if (!response.ok) {
-        throw new Error('Failed to fetch posts')
+        throw new Error("Failed to fetch posts");
       }
-      
-      const data = await response.json()
+
+      const data = await response.json();
       // Process the data to match our frontend needs
-      const processedPosts = data.map(post => ({
+      const processedPosts = data.map((post) => ({
         id: post.id,
         title: post.title,
         excerpt: getExcerpt(post.content),
         date: formatDate(post.createdAt),
         author: {
           name: post.author?.name || "Anonymous", // ✅ Keep name
-          email: post.author?.email || ""         // ✅ Add email
-        },// ✅ Fix: Access `name` instead of whole object
+          email: post.author?.email || "", // ✅ Add email
+        }, // ✅ Fix: Access `name` instead of whole object
         category: post.category || getCategoryFromContent(post.content),
         imageUrl: post.imageUrl,
         readTime: getReadTime(post.content),
       }));
-      
+
       // Sort posts by date (newest first)
-      const sortedPosts = processedPosts.sort((a, b) => 
-        new Date(b.date) - new Date(a.date)
-      )
-      
-      setBlogPosts(sortedPosts)
-      
+      const sortedPosts = processedPosts.sort(
+        (a, b) => new Date(b.date) - new Date(a.date)
+      );
+
+      setBlogPosts(sortedPosts);
+
       // Extract categories from posts and count occurrences
-      const categoryMap = {}
-      processedPosts.forEach(post => {
+      const categoryMap = {};
+      processedPosts.forEach((post) => {
         if (categoryMap[post.category]) {
-          categoryMap[post.category]++
+          categoryMap[post.category]++;
         } else {
-          categoryMap[post.category] = 1
+          categoryMap[post.category] = 1;
         }
-      })
-      
-      const extractedCategories = Object.keys(categoryMap).map(name => ({
+      });
+
+      const extractedCategories = Object.keys(categoryMap).map((name) => ({
         name,
-        count: categoryMap[name]
-      }))
-      
-      setCategories(extractedCategories)
-      
+        count: categoryMap[name],
+      }));
+
+      setCategories(extractedCategories);
+
       // Set recent posts (top 4 most recent)
-      setRecentPosts(sortedPosts.slice(0, 4).map(post => ({
-        id: post.id,
-        title: post.title,
-        date: post.date
-      })))
-      
-      setLoading(false)
+      setRecentPosts(
+        sortedPosts.slice(0, 4).map((post) => ({
+          id: post.id,
+          title: post.title,
+          date: post.date,
+        }))
+      );
+
+      setLoading(false);
     } catch (err) {
-      console.error("Error fetching blog data:", err)
-      setError(err.message)
-      setLoading(false)
+      console.error("Error fetching blog data:", err);
+      setError(err.message);
+      setLoading(false);
     }
-  }
+  };
 
   useEffect(() => {
-    fetchBlogData()
-  }, [])
+    fetchBlogData();
+  }, []);
 
   const handleDeletePost = async (postId) => {
     if (!window.confirm("Are you sure you want to delete this post?")) return;
-  
+
     try {
       const response = await fetch(`${API_URL}/api/posts/${postId}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
-          "email": loggedInEmail, // ✅ Send user email in headers
+          email: loggedInEmail, // ✅ Send user email in headers
         },
       });
-  
+
       if (!response.ok) throw new Error("Failed to delete post");
-  
-      setBlogPosts(prevPosts => prevPosts.filter(post => post.id !== postId));
-      addToast({ title: "Post deleted", description: "Your post has been removed." });
-  
+
+      setBlogPosts((prevPosts) =>
+        prevPosts.filter((post) => post.id !== postId)
+      );
+      addToast({
+        title: "Post deleted",
+        description: "Your post has been removed.",
+      });
     } catch (err) {
       console.error("Error deleting post:", err);
       addToast({ title: "Error", description: "Could not delete post." });
     }
   };
-  
 
   // Create post handler
 
   const handleCreatePost = async (e) => {
     e.preventDefault();
     if (!isLoggedIn) {
-      addToast({ title: "Login Required", description: "You must be logged in to create a post." });
+      addToast({
+        title: "Login Required",
+        description: "You must be logged in to create a post.",
+      });
       return;
     }
-    setSubmitting(true)
-  
+    setSubmitting(true);
+
     try {
       const formData = new FormData();
       formData.append("title", newPost.title);
       formData.append("content", newPost.content);
       formData.append("category", newPost.category);
       formData.append("authorEmail", newPost.authorEmail);
-      
+
       if (newPost.image) {
         formData.append("image", newPost.image); // ✅ Attach image file
       }
-  
+
       const response = await fetch(`${API_URL}/api/posts/create`, {
-        method: 'POST',
+        method: "POST",
         body: formData, // ✅ Send as FormData
       });
-  
+
       if (!response.ok) throw new Error("Failed to create post");
-  
+
       const createdPost = await response.json();
       fetchBlogData();
-      setNewPost({ title: "", content: "", category: "Web Development", authorEmail: '', image: null });
+      setNewPost({
+        title: "",
+        content: "",
+        category: "Web Development",
+        authorEmail: "",
+        image: null,
+      });
       setCreateDialogOpen(false);
-      addToast({ title: "Post created", description: "Your post has been published!" });
+      addToast({
+        title: "Post created",
+        description: "Your post has been published!",
+      });
     } catch (err) {
       console.error("Error creating post:", err);
       addToast({ title: "Error", description: "Could not publish post." });
@@ -226,135 +249,138 @@ export default function BlogPage() {
       setSubmitting(false);
     }
   };
-  
-  
+
   const handleGeneratePost = async () => {
-  if (!newPost.title.trim()) {
-    alert("Please enter a title for AI generation.");
-    return;
-  }
-
-  setGenerating(true);
-
-  try {
-    const response = await fetch(`${API_URL}/api/posts/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        prompt: newPost.title, 
-        authorEmail: newPost.authorEmail 
-      }),
-    });
-
-    // ✅ Parse response safely
-    const generatedPost = await response.json();
-
-    // ✅ Check if API responded with an error
-    if (!response.ok) {
-      console.error("Error generating post:", generatedPost);
-      alert("Failed to generate post. Try again.");
+    if (!newPost.title.trim()) {
+      alert("Please enter a title for AI generation.");
       return;
     }
 
-    // ✅ Only update state if AI returned content
-    if (generatedPost.content) {
-      setNewPost(prev => ({
-        ...prev,
-        content: generatedPost.content,
-      }));
+    setGenerating(true);
 
-      addToast({ title: "AI-generated content added!", description: "Your post has been generated." });
-    } else {
-      alert("AI failed to generate meaningful content.");
+    try {
+      const response = await fetch(`${API_URL}/api/posts/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: newPost.title,
+          authorEmail: newPost.authorEmail,
+        }),
+      });
+
+      // ✅ Parse response safely
+      const generatedPost = await response.json();
+
+      // ✅ Check if API responded with an error
+      if (!response.ok) {
+        console.error("Error generating post:", generatedPost);
+        alert("Failed to generate post. Try again.");
+        return;
+      }
+
+      // ✅ Only update state if AI returned content
+      if (generatedPost.content) {
+        setNewPost((prev) => ({
+          ...prev,
+          content: generatedPost.content,
+        }));
+
+        addToast({
+          title: "AI-generated content added!",
+          description: "Your post has been generated.",
+        });
+      } else {
+        alert("AI failed to generate meaningful content.");
+      }
+    } catch (err) {
+      console.error("Unexpected error generating post:", err);
+      alert("Something went wrong. Please try again.");
+    } finally {
+      setGenerating(false);
     }
-    
-  } catch (err) {
-    console.error("Unexpected error generating post:", err);
-    alert("Something went wrong. Please try again.");
-  } finally {
-    setGenerating(false);
-  }
-};
+  };
 
-  
   // Form input handlers
   const handleInputChange = (e) => {
     const { name, value, type } = e.target;
-    
+
     if (type === "file") {
-      setNewPost(prev => ({
+      setNewPost((prev) => ({
         ...prev,
-        image: e.target.files[0] // ✅ Store the file object
+        image: e.target.files[0], // ✅ Store the file object
       }));
     } else {
-      setNewPost(prev => ({
+      setNewPost((prev) => ({
         ...prev,
-        [name]: value
+        [name]: value,
       }));
     }
   };
-  
-  
+
   const handleCategoryChange = (value) => {
     if (value === "custom") {
       setIsCustomCategory(true);
       // Don't reset the category here
     } else {
       setIsCustomCategory(false);
-      setNewPost(prev => ({
+      setNewPost((prev) => ({
         ...prev,
-        category: value
+        category: value,
       }));
     }
   };
-  
 
   // Helper functions
   const getExcerpt = (content, maxLength = 120) => {
-    if (!content) return "No content available"
-    if (content.length <= maxLength) return content
-    return content.substring(0, maxLength).trim() + "..."
-  }
+    if (!content) return "No content available";
+    if (content.length <= maxLength) return content;
+    return content.substring(0, maxLength).trim() + "...";
+  };
 
   const formatDate = (dateString) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
-  }
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
 
   const getCategoryFromContent = (content) => {
-    if (!content) return "General"
-    const contentLower = content.toLowerCase()
-    
-    if (contentLower.includes("react")) return "React"
-    if (contentLower.includes("javascript") || contentLower.includes("js")) return "JavaScript"
-    if (contentLower.includes("css") || contentLower.includes("tailwind")) return "CSS"
-    if (contentLower.includes("accessibility") || contentLower.includes("a11y")) return "Accessibility"
-    if (contentLower.includes("performance")) return "Performance"
-    
-    return "Web Development"
-  }
+    if (!content) return "General";
+    const contentLower = content.toLowerCase();
+
+    if (contentLower.includes("react")) return "React";
+    if (contentLower.includes("javascript") || contentLower.includes("js"))
+      return "JavaScript";
+    if (contentLower.includes("css") || contentLower.includes("tailwind"))
+      return "CSS";
+    if (contentLower.includes("accessibility") || contentLower.includes("a11y"))
+      return "Accessibility";
+    if (contentLower.includes("performance")) return "Performance";
+
+    return "Web Development";
+  };
 
   const getReadTime = (content) => {
-    if (!content) return "1 min read"
+    if (!content) return "1 min read";
     // Average reading speed is ~200-250 words per minute
-    const words = content.split(/\s+/).length
-    const minutes = Math.ceil(words / 200)
-    return `${minutes} min read`
-  }
+    const words = content.split(/\s+/).length;
+    const minutes = Math.ceil(words / 200);
+    return `${minutes} min read`;
+  };
 
   // Filter posts based on search query and selected category
-  const filteredPosts = blogPosts.filter(post => {
-    const matchesSearch = post.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                         post.excerpt.toLowerCase().includes(searchQuery.toLowerCase())
-    
-    const matchesCategory = selectedCategory === "All" || post.category === selectedCategory
-    
-    return matchesSearch && matchesCategory
-  })
+  const filteredPosts = blogPosts.filter((post) => {
+    const matchesSearch =
+      post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      post.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchesCategory =
+      selectedCategory === "All" || post.category === selectedCategory;
+
+    return matchesSearch && matchesCategory;
+  });
 
   if (loading) {
     return (
@@ -365,10 +391,9 @@ export default function BlogPage() {
         </main>
         <Footer />
       </div>
-    )
+    );
   }
-  
-  
+
   if (error) {
     return (
       <div className="flex min-h-screen flex-col">
@@ -382,7 +407,7 @@ export default function BlogPage() {
           </div>
         </main>
       </div>
-    )
+    );
   }
 
   return (
@@ -396,38 +421,45 @@ export default function BlogPage() {
               <div className="mb-8">
                 <div className="flex justify-between items-center mb-4">
                   <h1 className="text-3xl font-bold tracking-tight">Blog</h1>
-                  {isLoggedIn ? <Button onClick={() => setCreateDialogOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" /> New Post
-                  </Button> : <>Login to Create Post</>}
+                  {isLoggedIn ? (
+                    <Button onClick={() => setCreateDialogOpen(true)}>
+                      <Plus className="mr-2 h-4 w-4" /> New Post
+                    </Button>
+                  ) : (
+                    <>Login to Create Post</>
+                  )}
                 </div>
                 <p className="text-gray-500 dark:text-gray-400 mb-6">
-                  Explore the latest articles, tutorials, and insights on web development, design, and technology.
+                  Explore the latest articles, tutorials, and insights on web
+                  development, design, and technology.
                 </p>
                 <div className="relative mb-6">
                   <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500 dark:text-gray-400" />
-                  <Input 
-                    type="search" 
-                    placeholder="Search articles..." 
+                  <Input
+                    type="search"
+                    placeholder="Search articles..."
                     className="w-full pl-8"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
                 <div className="flex flex-wrap gap-2 mb-6">
-                  <Badge 
-                    variant={selectedCategory === "All" ? "default" : "outline"} 
+                  <Badge
+                    variant={selectedCategory === "All" ? "default" : "outline"}
                     className="hover:bg-primary/10 cursor-pointer"
-                    onClick={() => setSelectedCategory("All")}
-                  >
+                    onClick={() => setSelectedCategory("All")}>
                     All
                   </Badge>
                   {categories.map((category) => (
-                    <Badge 
+                    <Badge
                       key={category.name}
-                      variant={selectedCategory === category.name ? "default" : "outline"} 
+                      variant={
+                        selectedCategory === category.name
+                          ? "default"
+                          : "outline"
+                      }
                       className="hover:bg-primary/10 cursor-pointer"
-                      onClick={() => setSelectedCategory(category.name)}
-                    >
+                      onClick={() => setSelectedCategory(category.name)}>
                       {category.name}
                     </Badge>
                   ))}
@@ -437,12 +469,19 @@ export default function BlogPage() {
               {filteredPosts.length > 0 ? (
                 <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2">
                   {filteredPosts.map((post) => (
-                    <BlogCard key={post.id} post={post} loggedInEmail={loggedInEmail} onDelete={handleDeletePost}/>
+                    <BlogCard
+                      key={post.id}
+                      post={post}
+                      loggedInEmail={loggedInEmail}
+                      onDelete={handleDeletePost}
+                    />
                   ))}
                 </div>
               ) : (
                 <div className="text-center py-12">
-                  <p className="text-gray-500">No posts found matching your criteria.</p>
+                  <p className="text-gray-500">
+                    No posts found matching your criteria.
+                  </p>
                 </div>
               )}
 
@@ -466,15 +505,16 @@ export default function BlogPage() {
                         <Link
                           href="#"
                           onClick={(e) => {
-                            e.preventDefault()
-                            setSelectedCategory(category.name)
+                            e.preventDefault();
+                            setSelectedCategory(category.name);
                           }}
-                          className="flex justify-between items-center py-1 hover:text-primary"
-                        >
+                          className="flex justify-between items-center py-1 hover:text-primary">
                           <span>{category.name}</span>
                           <Badge variant="secondary">{category.count}</Badge>
                         </Link>
-                        {index < categories.length - 1 && <Separator className="my-1" />}
+                        {index < categories.length - 1 && (
+                          <Separator className="my-1" />
+                        )}
                       </div>
                     ))}
                   </div>
@@ -489,11 +529,15 @@ export default function BlogPage() {
                   <div className="space-y-2">
                     {recentPosts.map((post, index) => (
                       <div key={post.id}>
-                        <Link href={`/blog/${post.id}`} className="block py-1 hover:text-primary">
+                        <Link
+                          href={`/blog/${post.id}`}
+                          className="block py-1 hover:text-primary">
                           <p className="font-medium">{post.title}</p>
                           <p className="text-sm text-gray-500">{post.date}</p>
                         </Link>
-                        {index < recentPosts.length - 1 && <Separator className="my-2" />}
+                        {index < recentPosts.length - 1 && (
+                          <Separator className="my-2" />
+                        )}
                       </div>
                     ))}
                   </div>
@@ -505,7 +549,9 @@ export default function BlogPage() {
                   <CardTitle>Subscribe</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-gray-500 mb-4">Get the latest posts delivered right to your inbox.</p>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Get the latest posts delivered right to your inbox.
+                  </p>
                   <div className="space-y-2">
                     <Input placeholder="Your email address" type="email" />
                     <Button className="w-full">Subscribe</Button>
@@ -514,7 +560,7 @@ export default function BlogPage() {
               </Card>
             </div>
           </div>
-          
+
           {/* Create Post Dialog */}
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
@@ -560,8 +606,7 @@ export default function BlogPage() {
                           setIsCustomCategory(false);
                           setNewPost((prev) => ({ ...prev, category: value }));
                         }
-                      }}
-                    >
+                      }}>
                       <SelectTrigger>
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
@@ -582,7 +627,7 @@ export default function BlogPage() {
                         placeholder="Enter your category"
                         value={newPost.category}
                         onChange={(e) =>
-                          setNewPost(prev => ({
+                          setNewPost((prev) => ({
                             ...prev,
                             category: e.target.value,
                           }))
@@ -590,7 +635,6 @@ export default function BlogPage() {
                       />
                     )}
                   </div>
-
 
                   <div className="grid gap-2">
                     <Label htmlFor="image">Upload Image</Label>
@@ -616,9 +660,13 @@ export default function BlogPage() {
                     />
                   </div>
                 </div>
-                
+
                 <DialogFooter>
-                  <Button type="button" variant="outline" onClick={handleGeneratePost} disabled={generating}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleGeneratePost}
+                    disabled={generating}>
                     {generating ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -629,7 +677,9 @@ export default function BlogPage() {
                     )}
                   </Button>
                   <DialogClose asChild>
-                    <Button type="button" variant="outline">Cancel</Button>
+                    <Button type="button" variant="outline">
+                      Cancel
+                    </Button>
                   </DialogClose>
                   <Button type="submit" disabled={submitting}>
                     {submitting ? (
@@ -647,7 +697,7 @@ export default function BlogPage() {
           </Dialog>
         </div>
       </main>
-      <Footer/>
+      <Footer />
     </div>
-  )
+  );
 }

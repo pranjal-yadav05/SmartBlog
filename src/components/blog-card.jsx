@@ -47,7 +47,7 @@ const BlogCard = ({ post, onDelete, loggedInEmail }) => {
         {/* Read Time Section */}
         <div className="flex items-center text-sm text-gray-500">
           <Clock className="h-4 w-4 mr-2" />
-          {post.readTime} min read
+          {post.readTime}
         </div>
 
         {/* Delete Button (Visible only for the author) */}
