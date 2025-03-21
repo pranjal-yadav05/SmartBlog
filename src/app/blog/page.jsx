@@ -46,6 +46,11 @@ export default function BlogPage() {
   const [generating, setGenerating] = useState(false);
   const [loggedInEmail, setLoggedInEmail] = useState(null);
   const [isCustomCategory, setIsCustomCategory] = useState(false);
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalItems, setTotalItems] = useState(0);
+  const pageSize = 10;
 
   // Form state for creating a new post
 
@@ -102,16 +107,34 @@ export default function BlogPage() {
 
   const fetchBlogData = async () => {
     try {
-      // Fetch all posts from the API
-      const response = await fetch(`${API_URL}/api/posts/`);
+      let data;
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch posts");
+      // If category is selected, use the category-specific paginated endpoint
+      if (selectedCategory !== "All") {
+        const categoryResponse = await fetch(
+          `${API_URL}/api/posts/category/${selectedCategory}?page=${currentPage}&size=${pageSize}&sortBy=createdAt&direction=desc`
+        );
+
+        if (!categoryResponse.ok) {
+          throw new Error("Failed to fetch category posts");
+        }
+
+        data = await categoryResponse.json();
+      } else {
+        // Fetch paginated posts from the API (all posts)
+        const response = await fetch(
+          `${API_URL}/api/posts/paginated?page=${currentPage}&size=${pageSize}&sortBy=createdAt&direction=desc`
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch posts");
+        }
+
+        data = await response.json();
       }
 
-      const data = await response.json();
       // Process the data to match our frontend needs
-      const processedPosts = data.map((post) => ({
+      const processedPosts = data.content.map((post) => ({
         id: post.id,
         title: post.title,
         excerpt: getExcerpt(post.content),
@@ -120,43 +143,49 @@ export default function BlogPage() {
           name: post.author?.name || "Anonymous", // ✅ Keep name
           email: post.author?.email || "", // ✅ Add email
         }, // ✅ Fix: Access `name` instead of whole object
-        category: post.category || getCategoryFromContent(post.content),
+        category: post.category,
         imageUrl: post.imageUrl,
         readTime: getReadTime(post.content),
       }));
 
-      // Sort posts by date (newest first)
-      const sortedPosts = processedPosts.sort(
-        (a, b) => new Date(b.date) - new Date(a.date)
-      );
+      setBlogPosts(processedPosts);
+      setTotalPages(data.totalPages);
+      setTotalItems(data.totalItems);
+      setCurrentPage(data.currentPage);
 
-      setBlogPosts(sortedPosts);
+      // Fetch all posts just for categories - could be optimized in future
+      const allPostsResponse = await fetch(`${API_URL}/api/posts/`);
+      if (allPostsResponse.ok) {
+        const allPosts = await allPostsResponse.json();
+        // Extract categories from posts and count occurrences
+        const categoryMap = {};
+        allPosts.forEach((post) => {
+          if (categoryMap[post.category]) {
+            categoryMap[post.category]++;
+          } else {
+            categoryMap[post.category] = 1;
+          }
+        });
 
-      // Extract categories from posts and count occurrences
-      const categoryMap = {};
-      processedPosts.forEach((post) => {
-        if (categoryMap[post.category]) {
-          categoryMap[post.category]++;
-        } else {
-          categoryMap[post.category] = 1;
-        }
-      });
+        const extractedCategories = Object.keys(categoryMap).map((name) => ({
+          name,
+          count: categoryMap[name],
+        }));
 
-      const extractedCategories = Object.keys(categoryMap).map((name) => ({
-        name,
-        count: categoryMap[name],
-      }));
+        setCategories(extractedCategories);
 
-      setCategories(extractedCategories);
+        // Set recent posts (top 4 most recent)
+        const sortedPosts = allPosts
+          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+          .slice(0, 4)
+          .map((post) => ({
+            id: post.id,
+            title: post.title,
+            date: formatDate(post.createdAt),
+          }));
 
-      // Set recent posts (top 4 most recent)
-      setRecentPosts(
-        sortedPosts.slice(0, 4).map((post) => ({
-          id: post.id,
-          title: post.title,
-          date: post.date,
-        }))
-      );
+        setRecentPosts(sortedPosts);
+      }
 
       setLoading(false);
     } catch (err) {
@@ -168,7 +197,14 @@ export default function BlogPage() {
 
   useEffect(() => {
     fetchBlogData();
-  }, []);
+  }, [currentPage, selectedCategory]); // Refetch when page or category changes
+
+  // Function to handle page changes
+  const handlePageChange = (newPage) => {
+    if (newPage >= 0 && newPage < totalPages) {
+      setCurrentPage(newPage); // Scroll to top on page change
+    }
+  };
 
   const handleDeletePost = async (postId) => {
     if (!window.confirm("Are you sure you want to delete this post?")) return;
@@ -346,22 +382,6 @@ export default function BlogPage() {
     });
   };
 
-  const getCategoryFromContent = (content) => {
-    if (!content) return "General";
-    const contentLower = content.toLowerCase();
-
-    if (contentLower.includes("react")) return "React";
-    if (contentLower.includes("javascript") || contentLower.includes("js"))
-      return "JavaScript";
-    if (contentLower.includes("css") || contentLower.includes("tailwind"))
-      return "CSS";
-    if (contentLower.includes("accessibility") || contentLower.includes("a11y"))
-      return "Accessibility";
-    if (contentLower.includes("performance")) return "Performance";
-
-    return "Web Development";
-  };
-
   const getReadTime = (content) => {
     if (!content) return "1 min read";
     // Average reading speed is ~200-250 words per minute
@@ -370,17 +390,22 @@ export default function BlogPage() {
     return `${minutes} min read`;
   };
 
-  // Filter posts based on search query and selected category
-  const filteredPosts = blogPosts.filter((post) => {
-    const matchesSearch =
-      post.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      post.excerpt.toLowerCase().includes(searchQuery.toLowerCase());
+  // Update the category selection handler to reset pagination
+  const handleCategorySelect = (category) => {
+    setCurrentPage(0); // Reset to first page when changing category
+    setSelectedCategory(category);
+  };
 
-    const matchesCategory =
-      selectedCategory === "All" || post.category === selectedCategory;
+  // Filter posts client-side based on search query only (category filtering is server-side now)
+  const getFilteredPosts = () => {
+    if (!searchQuery) return blogPosts; // No client-side filtering needed
 
-    return matchesSearch && matchesCategory;
-  });
+    return blogPosts.filter((post) => {
+      return post.title.toLowerCase().includes(searchQuery.toLowerCase());
+    });
+  };
+
+  const filteredPosts = getFilteredPosts();
 
   if (loading) {
     return (
@@ -447,7 +472,7 @@ export default function BlogPage() {
                   <Badge
                     variant={selectedCategory === "All" ? "default" : "outline"}
                     className="hover:bg-primary/10 cursor-pointer"
-                    onClick={() => setSelectedCategory("All")}>
+                    onClick={() => handleCategorySelect("All")}>
                     All
                   </Badge>
                   {categories.map((category) => (
@@ -459,7 +484,7 @@ export default function BlogPage() {
                           : "outline"
                       }
                       className="hover:bg-primary/10 cursor-pointer"
-                      onClick={() => setSelectedCategory(category.name)}>
+                      onClick={() => handleCategorySelect(category.name)}>
                       {category.name}
                     </Badge>
                   ))}
@@ -485,9 +510,42 @@ export default function BlogPage() {
                 </div>
               )}
 
-              {filteredPosts.length > 0 && (
+              {/* Pagination Controls */}
+              {!searchQuery && (
+                <div className="mt-8 flex justify-center items-center space-x-4">
+                  <Button
+                    variant="outline"
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 0}>
+                    Previous
+                  </Button>
+
+                  <div className="text-sm">
+                    Page {currentPage + 1} of {totalPages}
+                    <span className="text-gray-500 ml-2">
+                      ({totalItems} posts)
+                    </span>
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages - 1}>
+                    Next
+                  </Button>
+                </div>
+              )}
+
+              {/* If searching, show "Clear Filters" button */}
+              {searchQuery && filteredPosts.length > 0 && (
                 <div className="mt-8 flex justify-center">
-                  <Button variant="outline">Load More</Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSearchQuery("");
+                    }}>
+                    Clear Search
+                  </Button>
                 </div>
               )}
             </div>
@@ -506,7 +564,7 @@ export default function BlogPage() {
                           href="#"
                           onClick={(e) => {
                             e.preventDefault();
-                            setSelectedCategory(category.name);
+                            handleCategorySelect(category.name);
                           }}
                           className="flex justify-between items-center py-1 hover:text-primary">
                           <span>{category.name}</span>

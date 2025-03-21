@@ -13,11 +13,11 @@ import { Header } from "@/components/header";
 import { useState, useEffect } from "react";
 import Footer from "@/components/footer";
 import LoadingScreen from "@/components/loading-screen";
+import { useParams } from "next/navigation";
 
-export default function Profile() {
+export default function UserProfile() {
   const [userData, setUserData] = useState(null);
-  const [userPosts, setUserPosts] = useState([]); // Store posts separately
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userPosts, setUserPosts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   // Pagination state
@@ -26,58 +26,53 @@ export default function Profile() {
   const [totalItems, setTotalItems] = useState(0);
   const pageSize = 6; // Smaller page size for profile view
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
+  const params = useParams();
+  const userEmail = decodeURIComponent(params.email);
+  const [currentUserEmail, setCurrentUserEmail] = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("jwt");
-    if (!token) {
-      setIsLoggedIn(false);
-      setIsLoading(false);
-      return;
-    }
-    fetchUserProfile(token);
+    // Get current logged in user's email
+    const email = localStorage.getItem("email");
+    setCurrentUserEmail(email);
+
+    // Fetch user profile by email
+    fetchUserProfile();
   }, []);
 
-  // Add a separate useEffect to handle pagination
-  useEffect(() => {
-    if (userData && userData.email) {
-      fetchUserPosts(userData.email);
-    }
-  }, [currentPage, userData]);
-
-  const fetchUserProfile = async (token) => {
+  const fetchUserProfile = async () => {
     try {
-      const response = await fetch(`${API_URL}/api/users/profile`, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      });
+      // Get users list and filter by the email
+      const response = await fetch(`${API_URL}/api/users`);
 
       if (!response.ok) {
-        if (response.status === 401) {
-          localStorage.removeItem("jwt");
-          setIsLoggedIn(false);
-          setError("Your session has expired. Please log in again.");
-        } else {
-          setError("Failed to load profile data.");
-        }
+        throw new Error("Failed to fetch users");
+      }
+
+      const users = await response.json();
+      const user = users.find(
+        (u) => u.email.toLowerCase() === userEmail.toLowerCase()
+      );
+
+      if (!user) {
+        setError("User not found");
         setIsLoading(false);
         return;
       }
 
-      const data = await response.json();
       setUserData({
-        name: data.name,
-        email: data.email,
-        profilePicture: data.profileImage || "/placeholder.png",
+        name: user.name,
+        email: user.email,
+        profilePicture:
+          user.profileImage && user.profileImage !== "null"
+            ? user.profileImage
+            : null,
       });
 
-      setIsLoggedIn(true);
-      fetchUserPosts(data.email); // Fetch posts after getting the user's email
+      fetchUserPosts(user.email);
     } catch (err) {
-      setError("Network error when fetching profile data.");
-      console.error("Error fetching profile:", err);
+      setError("Error fetching user profile");
+      console.error("Error fetching user profile:", err);
+      setIsLoading(false);
     }
   };
 
@@ -108,8 +103,42 @@ export default function Profile() {
   const handlePageChange = (newPage) => {
     if (newPage >= 0 && newPage < totalPages) {
       setCurrentPage(newPage);
-      // Remove scroll to top behavior
+      // Remove direct fetch call as it's handled by the useEffect
     }
+  };
+
+  // Add a separate useEffect to handle pagination
+  useEffect(() => {
+    if (userData && userData.email) {
+      fetchUserPosts(userData.email);
+    }
+  }, [currentPage, userData]);
+
+  // Helper function to get profile image for specific users or validate URLs
+  const getProfileImageForUser = (user) => {
+    // For other users, validate their profile image URL
+    if (
+      !user.profilePicture ||
+      user.profilePicture === "null" ||
+      user.profilePicture === "undefined"
+    ) {
+      return null;
+    }
+
+    // Check if the URL is already absolute (starts with http or https)
+    if (
+      user.profilePicture.startsWith("http://") ||
+      user.profilePicture.startsWith("https://")
+    ) {
+      return user.profilePicture;
+    }
+
+    // Check if it's a local path that should start with a slash
+    if (!user.profilePicture.startsWith("/")) {
+      return `/${user.profilePicture}`;
+    }
+
+    return user.profilePicture;
   };
 
   if (isLoading) {
@@ -117,27 +146,27 @@ export default function Profile() {
       <div className="flex min-h-screen flex-col">
         <Header />
         <main className="flex-1 flex items-center justify-center">
-          <LoadingScreen message="Loading profile... Fetching your details." />;
+          <LoadingScreen message="Loading profile... Fetching user details." />
         </main>
         <Footer />
       </div>
     );
   }
 
-  if (!isLoggedIn) {
+  if (error) {
     return (
       <div className="flex min-h-screen flex-col">
         <Header />
         <main className="flex-1 flex items-center justify-center">
           <div className="container px-4 md:px-6 text-center">
             <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl mb-4">
-              Please Log In
+              User Not Found
             </h2>
             <p className="text-gray-500 md:text-xl dark:text-gray-400 mb-4">
-              {error || "You need to be logged in to access the profile page."}
+              {error}
             </p>
-            <Link href="/login">
-              <Button>Log In</Button>
+            <Link href="/blog">
+              <Button>Go to Blog</Button>
             </Link>
           </div>
         </main>
@@ -146,6 +175,8 @@ export default function Profile() {
     );
   }
 
+  const isCurrentUser = currentUserEmail === userData.email;
+
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
@@ -153,25 +184,47 @@ export default function Profile() {
         <section className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-b from-white to-gray-100 dark:from-gray-900 dark:to-gray-800">
           <div className="container px-4 md:px-6">
             <div className="flex flex-col items-center text-center">
-              <img
-                src={userData.profilePicture}
-                alt="Profile"
-                className="w-32 h-32 rounded-full object-cover"
-                onError={(e) => (e.target.src = "/default-profile.jpg")}
-              />
-              <h1 className="text-4xl font-semibold">{userData.name}</h1>
+              {(() => {
+                const profileImage = getProfileImageForUser(userData);
+
+                if (profileImage) {
+                  return (
+                    <img
+                      src={profileImage}
+                      alt={userData.name}
+                      className="w-32 h-32 rounded-full object-cover"
+                      onError={(e) => {
+                        e.target.onerror = null;
+                        e.target.src = "/placeholder.png";
+                      }}
+                    />
+                  );
+                } else {
+                  return (
+                    <div className="w-32 h-32 rounded-full bg-gray-200 flex items-center justify-center">
+                      <span className="text-gray-500 text-4xl font-semibold">
+                        {userData.name.charAt(0).toUpperCase()}
+                      </span>
+                    </div>
+                  );
+                }
+              })()}
+              <h1 className="text-4xl font-semibold mt-4">{userData.name}</h1>
               <p className="text-lg text-gray-500 dark:text-gray-400 mb-5">
                 {userData.email}
               </p>
-              <Link href="/setting">
-                <Button variant="outline">Edit Profile</Button>
-              </Link>
+
+              {isCurrentUser && (
+                <Link href="/setting">
+                  <Button variant="outline">Edit Profile</Button>
+                </Link>
+              )}
             </div>
 
             {/* User's Posts */}
             <div className="mt-8">
               <h2 className="text-3xl font-bold tracking-tighter md:text-4xl mb-5 text-center">
-                Your Posts
+                {isCurrentUser ? "Your Posts" : `${userData.name}'s Posts`}
               </h2>
               {userPosts.length > 0 ? (
                 <>
@@ -224,18 +277,21 @@ export default function Profile() {
               ) : (
                 <div className="text-center py-8">
                   <p className="text-gray-500 dark:text-gray-400 mb-5">
-                    You haven't created any posts yet.
+                    {isCurrentUser
+                      ? "You haven't created any posts yet."
+                      : `${userData.name} hasn't created any posts yet.`}
                   </p>
-                  <Link href="/blog">
-                    <Button>Create Your First Post</Button>
-                  </Link>
+                  {isCurrentUser && (
+                    <Link href="/blog">
+                      <Button>Create Your First Post</Button>
+                    </Link>
+                  )}
                 </div>
               )}
             </div>
           </div>
         </section>
       </main>
-
       <Footer />
     </div>
   );
