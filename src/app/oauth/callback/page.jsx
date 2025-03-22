@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
 
-export default function OAuthCallbackPage() {
+function OAuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [error, setError] = useState("");
@@ -112,5 +112,24 @@ export default function OAuthCallbackPage() {
         </>
       )}
     </div>
+  );
+}
+
+// Loading fallback for the suspense boundary
+function LoadingFallback() {
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen p-4">
+      <Loader2 className="h-12 w-12 animate-spin text-primary mb-4" />
+      <h1 className="text-2xl font-bold mb-2">Loading...</h1>
+      <p className="text-gray-500">Please wait while we prepare the page</p>
+    </div>
+  );
+}
+
+export default function OAuthCallbackPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <OAuthCallbackContent />
+    </Suspense>
   );
 }
