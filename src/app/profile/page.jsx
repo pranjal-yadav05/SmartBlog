@@ -37,9 +37,10 @@ export default function Profile() {
     fetchUserProfile(token);
   }, []);
 
-  // Add a separate useEffect to handle pagination
+  // Add a separate useEffect to handle pagination and fetch posts once profile is loaded
   useEffect(() => {
-    if (userData && userData.email) {
+    const token = localStorage.getItem("jwt");
+    if (userData && userData.email && token) {
       fetchUserPosts(userData.email);
     }
   }, [currentPage, userData]);
@@ -52,15 +53,20 @@ export default function Profile() {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
+        credentials: "include", // Include cookies
+        mode: "cors", // Explicitly set CORS mode
       });
 
       if (!response.ok) {
         if (response.status === 401) {
           localStorage.removeItem("jwt");
+          localStorage.removeItem("username");
+          localStorage.removeItem("email");
+          localStorage.removeItem("profileImage");
           setIsLoggedIn(false);
           setError("Your session has expired. Please log in again.");
         } else {
-          setError("Failed to load profile data.");
+          setError(`Failed to load profile data (${response.status}).`);
         }
         setIsLoading(false);
         return;
@@ -74,10 +80,18 @@ export default function Profile() {
       });
 
       setIsLoggedIn(true);
-      fetchUserPosts(data.email); // Fetch posts after getting the user's email
+      setIsLoading(false);
     } catch (err) {
-      setError("Network error when fetching profile data.");
+      localStorage.removeItem("jwt"); // Clear token on error
+      localStorage.removeItem("username");
+      localStorage.removeItem("email");
+      localStorage.removeItem("profileImage");
+      setIsLoggedIn(false);
+      setError(
+        "Network error when fetching profile data. Please try again later."
+      );
       console.error("Error fetching profile:", err);
+      setIsLoading(false);
     }
   };
 
@@ -85,7 +99,16 @@ export default function Profile() {
     try {
       // Use the paginated endpoint
       const response = await fetch(
-        `${API_URL}/api/posts/user/${email}/paginated?page=${currentPage}&size=${pageSize}&sortBy=createdAt&direction=desc`
+        `${API_URL}/api/posts/user/${email}/paginated?page=${currentPage}&size=${pageSize}&sortBy=createdAt&direction=desc`,
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${localStorage.getItem("jwt")}`,
+          },
+          credentials: "include",
+          mode: "cors",
+        }
       );
 
       if (!response.ok) {

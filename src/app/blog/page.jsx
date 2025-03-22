@@ -53,7 +53,6 @@ export default function BlogPage() {
   const pageSize = 10;
 
   // Form state for creating a new post
-
   const [newPost, setNewPost] = useState({
     title: "",
     content: "",
@@ -76,6 +75,10 @@ export default function BlogPage() {
 
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+
+  // Add the following to the top of the component, with the other state variables
+  const [subscribeEmail, setSubscribeEmail] = useState("");
+  const [subscribing, setSubscribing] = useState(false);
 
   useEffect(() => {
     // Set mounted to true when component mounts in browser
@@ -234,7 +237,6 @@ export default function BlogPage() {
   };
 
   // Create post handler
-
   const handleCreatePost = async (e) => {
     e.preventDefault();
     if (!isLoggedIn) {
@@ -406,6 +408,64 @@ export default function BlogPage() {
   };
 
   const filteredPosts = getFilteredPosts();
+
+  // Add this function with the other handler functions
+  const handleSubscribe = async () => {
+    if (!subscribeEmail || !subscribeEmail.includes("@")) {
+      addToast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address.",
+      });
+      return;
+    }
+
+    setSubscribing(true);
+
+    try {
+      const response = await fetch(
+        `${API_URL}/api/newsletter/subscribe?email=${encodeURIComponent(
+          subscribeEmail
+        )}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        addToast({
+          title: "Subscription Successful",
+          description: "You've been subscribed to our weekly newsletter!",
+        });
+        setSubscribeEmail(""); // Clear the input
+      } else {
+        // Handle already subscribed case
+        if (response.status === 409) {
+          addToast({
+            title: "Already Subscribed",
+            description:
+              data.message ||
+              "This email is already subscribed to our newsletter.",
+          });
+        } else {
+          throw new Error(data.message || "Failed to subscribe");
+        }
+      }
+    } catch (error) {
+      console.error("Subscription error:", error);
+      addToast({
+        title: "Subscription Error",
+        description:
+          "There was an error subscribing to the newsletter. Please try again.",
+      });
+    } finally {
+      setSubscribing(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -608,11 +668,30 @@ export default function BlogPage() {
                 </CardHeader>
                 <CardContent>
                   <p className="text-sm text-gray-500 mb-4">
-                    Get the latest posts delivered right to your inbox.
+                    Get the top 5 posts of the week delivered right to your
+                    inbox.
                   </p>
                   <div className="space-y-2">
-                    <Input placeholder="Your email address" type="email" />
-                    <Button className="w-full">Subscribe</Button>
+                    <Input
+                      placeholder="Your email address"
+                      type="email"
+                      id="subscribe-email"
+                      value={subscribeEmail}
+                      onChange={(e) => setSubscribeEmail(e.target.value)}
+                    />
+                    <Button
+                      className="w-full"
+                      onClick={handleSubscribe}
+                      disabled={subscribing}>
+                      {subscribing ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Subscribing...
+                        </>
+                      ) : (
+                        "Subscribe"
+                      )}
+                    </Button>
                   </div>
                 </CardContent>
               </Card>

@@ -31,36 +31,121 @@ export default function UserProfile() {
   const [currentUserEmail, setCurrentUserEmail] = useState(null);
 
   useEffect(() => {
+    // Log the decoded email to ensure it matches the expected format
+    console.log("Profile page - decoded email parameter:", userEmail);
+
     // Get current logged in user's email
     const email = localStorage.getItem("email");
     setCurrentUserEmail(email);
 
+    // Log the viewed user data from localStorage, if available
+    const viewedUserEmail = localStorage.getItem("viewedUserEmail");
+    if (viewedUserEmail) {
+      console.log(
+        "Profile page - localStorage viewedUserEmail:",
+        viewedUserEmail
+      );
+    }
+
     // Fetch user profile by email
     fetchUserProfile();
+
+    // Debug log
+    console.log("Profile page loaded for email:", userEmail);
   }, []);
 
   const fetchUserProfile = async () => {
     try {
-      // Get users list and filter by the email
-      const response = await fetch(`${API_URL}/api/users`);
+      console.log("Fetching user profile for:", userEmail);
+
+      // Try to get cached user data first
+      const cachedUserData = localStorage.getItem("viewedUserData");
+      if (cachedUserData) {
+        try {
+          const parsedUser = JSON.parse(cachedUserData);
+          if (
+            parsedUser.email &&
+            parsedUser.email.toLowerCase() === userEmail.toLowerCase()
+          ) {
+            console.log(
+              "Using cached user data from localStorage:",
+              parsedUser
+            );
+            setUserData({
+              name: parsedUser.name || "Unknown User",
+              email: parsedUser.email,
+              profilePicture:
+                parsedUser.profileImageUrl || parsedUser.profileImage || null,
+            });
+            fetchUserPosts(parsedUser.email);
+            return;
+          }
+        } catch (e) {
+          console.error("Error parsing cached user data:", e);
+        }
+      }
+
+      // Get users list and filter by the email if no cached data
+      const response = await fetch(
+        `${API_URL}/api/users?search=${encodeURIComponent(userEmail)}`
+      );
 
       if (!response.ok) {
+        console.error("API response not OK:", response.status);
         throw new Error("Failed to fetch users");
       }
 
       const users = await response.json();
-      const user = users.find(
-        (u) => u.email.toLowerCase() === userEmail.toLowerCase()
-      );
+      console.log("Fetched users:", users);
+
+      let user = null;
+
+      // First try to find by exact email match
+      if (Array.isArray(users)) {
+        user = users.find(
+          (u) => u.email && u.email.toLowerCase() === userEmail.toLowerCase()
+        );
+
+        // If not found, try to find by partial match
+        if (!user && users.length > 0) {
+          console.log("No exact match found, trying partial match");
+          user = users[0]; // Use the first result as fallback
+        }
+      }
+
+      // If still no user found from API, try to use localStorage data
+      if (!user) {
+        console.log("No user found from API, trying localStorage data");
+        const viewedUserEmail = localStorage.getItem("viewedUserEmail");
+        const viewedUserName = localStorage.getItem("viewedUserName");
+        const viewedUserProfileImage = localStorage.getItem(
+          "viewedUserProfileImage"
+        );
+
+        if (
+          viewedUserEmail &&
+          viewedUserEmail.toLowerCase() === userEmail.toLowerCase()
+        ) {
+          console.log("Using user data from localStorage");
+          user = {
+            name: viewedUserName || "Unknown User",
+            email: viewedUserEmail,
+            profileImage: viewedUserProfileImage || null,
+          };
+        }
+      }
 
       if (!user) {
-        setError("User not found");
+        console.error("User not found in API response or localStorage");
+        setError("User not found. Please check the email address.");
         setIsLoading(false);
         return;
       }
 
+      console.log("Found user:", user);
+
       setUserData({
-        name: user.name,
+        name: user.name || "Unknown User",
         email: user.email,
         profilePicture:
           user.profileImage && user.profileImage !== "null"
@@ -70,30 +155,104 @@ export default function UserProfile() {
 
       fetchUserPosts(user.email);
     } catch (err) {
-      setError("Error fetching user profile");
       console.error("Error fetching user profile:", err);
+
+      // Try to recover using localStorage - first try JSON data
+      try {
+        const cachedUserData = localStorage.getItem("viewedUserData");
+        if (cachedUserData) {
+          const parsedUser = JSON.parse(cachedUserData);
+          if (
+            parsedUser.email &&
+            parsedUser.email.toLowerCase() === userEmail.toLowerCase()
+          ) {
+            console.log(
+              "Recovering from JSON user data in localStorage after API error"
+            );
+            setUserData({
+              name: parsedUser.name || "Unknown User",
+              email: parsedUser.email,
+              profilePicture:
+                parsedUser.profileImageUrl || parsedUser.profileImage || null,
+            });
+            fetchUserPosts(parsedUser.email);
+            return;
+          }
+        }
+      } catch (jsonError) {
+        console.error("Error parsing cached JSON user data:", jsonError);
+      }
+
+      // Fall back to individual localStorage fields
+      const viewedUserEmail = localStorage.getItem("viewedUserEmail");
+      const viewedUserName = localStorage.getItem("viewedUserName");
+      const viewedUserProfileImage = localStorage.getItem(
+        "viewedUserProfileImage"
+      );
+
+      if (
+        viewedUserEmail &&
+        viewedUserEmail.toLowerCase() === userEmail.toLowerCase()
+      ) {
+        console.log(
+          "Recovering user data from localStorage fields after API error"
+        );
+        setUserData({
+          name: viewedUserName || "Unknown User",
+          email: viewedUserEmail,
+          profilePicture: viewedUserProfileImage || null,
+        });
+        fetchUserPosts(viewedUserEmail);
+        return;
+      }
+
+      setError("Error fetching user profile. Please try again later.");
       setIsLoading(false);
     }
   };
 
   const fetchUserPosts = async (email) => {
     try {
+      console.log("Fetching posts for user email:", email);
+
       // Use the paginated endpoint
       const response = await fetch(
-        `${API_URL}/api/posts/user/${email}/paginated?page=${currentPage}&size=${pageSize}&sortBy=createdAt&direction=desc`
+        `${API_URL}/api/posts/user/${encodeURIComponent(
+          email
+        )}/paginated?page=${currentPage}&size=${pageSize}&sortBy=createdAt&direction=desc`
       );
 
       if (!response.ok) {
-        throw new Error("Failed to fetch user posts");
+        console.error("Error fetching user posts, status:", response.status);
+        throw new Error(`Failed to fetch user posts: ${response.status}`);
       }
 
       const data = await response.json();
-      setUserPosts(data.content);
-      setTotalPages(data.totalPages);
-      setTotalItems(data.totalItems);
-      setCurrentPage(data.currentPage);
+      console.log("User posts data:", data);
+
+      // Handle both array and paginated response formats
+      if (data.content && Array.isArray(data.content)) {
+        setUserPosts(data.content);
+        setTotalPages(data.totalPages || 1);
+        setTotalItems(data.totalItems || data.content.length);
+        setCurrentPage(data.currentPage || 0);
+      } else if (Array.isArray(data)) {
+        setUserPosts(data);
+        setTotalPages(1);
+        setTotalItems(data.length);
+        setCurrentPage(0);
+      } else {
+        console.error("Unexpected posts data format:", data);
+        setUserPosts([]);
+        setTotalPages(0);
+        setTotalItems(0);
+      }
     } catch (error) {
       console.error("Error fetching user posts:", error);
+      // Set empty posts but don't show an error message - the profile should still display
+      setUserPosts([]);
+      setTotalPages(0);
+      setTotalItems(0);
     } finally {
       setIsLoading(false);
     }

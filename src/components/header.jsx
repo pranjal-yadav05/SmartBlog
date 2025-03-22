@@ -17,6 +17,7 @@ import Image from "next/image";
 export function Header() {
   const router = useRouter();
   const [showSearch, setShowSearch] = useState(false);
+  const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [user, setUser] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [users, setUsers] = useState([]);
@@ -41,44 +42,236 @@ export function Header() {
     }
   }, []);
 
-  // Only fetch users when search is shown to avoid unnecessary API calls
   useEffect(() => {
-    if (showSearch && users.length === 0) {
-      fetchUsers();
+    if (showSearch) {
+      // Just focus the search field, don't load all users
+      // No initial search when opening the search box
     }
-  }, [showSearch, users.length]);
+  }, [showSearch]);
 
-  const fetchUsers = async () => {
-    try {
-      setSearchLoading(true);
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/api/users`
-      );
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data);
-      }
-    } catch (error) {
-      console.error("Error fetching users:", error);
-    } finally {
-      setSearchLoading(false);
-    }
-  };
-
+  // Debounced search effect
   useEffect(() => {
+    // Don't do anything if search isn't shown
+    if (!showSearch && !showMobileSearch) return;
+
+    // Don't search if query is empty
     if (searchQuery.trim() === "") {
       setFilteredUsers([]);
       return;
     }
 
-    const filtered = users.filter(
-      (u) =>
-        u.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (u.email && u.email.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
+    // Adjust debounce time based on query length
+    // Single letter searches should be faster to feel responsive
+    const debounceTime = searchQuery.trim().length === 1 ? 100 : 300;
 
-    setFilteredUsers(filtered);
-  }, [searchQuery, users]);
+    // Set a delay before executing search to avoid too many API calls
+    const debounceTimer = setTimeout(() => {
+      fetchUsers(searchQuery);
+    }, debounceTime);
+
+    // Cleanup function to clear the timer if component unmounts or dependencies change
+    return () => clearTimeout(debounceTimer);
+  }, [searchQuery, showSearch, showMobileSearch]);
+
+  const fetchUsers = async (query = "") => {
+    try {
+      setSearchLoading(true);
+      const token = localStorage.getItem("jwt");
+
+      // If the query is only one letter, use the initial letter endpoint
+      if (query.trim().length === 1) {
+        await fetchUsersByInitial(query.trim());
+        return;
+      }
+
+      // Build the URL for the search endpoint
+      const url = new URL(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/users/search`
+      );
+
+      // Add query parameters
+      url.searchParams.append("query", query);
+      url.searchParams.append("page", "0");
+      url.searchParams.append("size", "10");
+
+      console.log("Searching users with URL:", url.toString());
+
+      // Setup request with appropriate headers
+      const options = {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      };
+
+      // Add authorization header if user is logged in
+      if (token) {
+        options.headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await fetch(url.toString(), options);
+
+      if (!response.ok) {
+        console.error("Search API error:", response.status);
+
+        // Try fallback search if main search fails
+        console.log("Using fallback search...");
+        const fallbackResults = await fallbackSearch(query);
+
+        if (fallbackResults && fallbackResults.length > 0) {
+          setFilteredUsers(fallbackResults);
+          setUsers(fallbackResults);
+          return;
+        } else {
+          throw new Error(`Search failed with status: ${response.status}`);
+        }
+      }
+
+      const data = await response.json();
+      console.log("Search response data:", data);
+
+      // Check if response has content property (paginated response)
+      if (data.content && Array.isArray(data.content)) {
+        setFilteredUsers(data.content);
+        setUsers(data.content);
+      }
+      // Check if response is an array (non-paginated response)
+      else if (Array.isArray(data)) {
+        setFilteredUsers(data);
+        setUsers(data);
+      }
+      // Handle unexpected response format
+      else {
+        console.error("Unexpected response format:", data);
+        setFilteredUsers([]);
+        setUsers([]);
+        throw new Error("Unexpected response format from search API");
+      }
+    } catch (error) {
+      console.error("Error searching users:", error.message);
+      setFilteredUsers([]);
+      setUsers([]);
+      // Don't show error to user - just log it and show empty results
+    } finally {
+      setSearchLoading(false);
+    }
+  };
+
+  // Function to fetch users by initial letter
+  const fetchUsersByInitial = async (initial) => {
+    try {
+      const token = localStorage.getItem("jwt");
+
+      // Build the URL for the initial letter endpoint
+      const url = new URL(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/users/by-initial/${initial}`
+      );
+
+      url.searchParams.append("page", "0");
+      url.searchParams.append("size", "10");
+
+      console.log("Searching users by initial with URL:", url.toString());
+
+      const options = {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      };
+
+      if (token) {
+        options.headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await fetch(url.toString(), options);
+
+      if (!response.ok) {
+        console.error("Initial search API error:", response.status);
+        // Try fallback search for initial as well
+        const fallbackResults = await fallbackSearch(initial);
+        if (fallbackResults && fallbackResults.length > 0) {
+          setFilteredUsers(fallbackResults);
+          setUsers(fallbackResults);
+        } else {
+          throw new Error(
+            `Initial search failed with status: ${response.status}`
+          );
+        }
+        return;
+      }
+
+      const data = await response.json();
+      console.log("Initial search response data:", data);
+
+      // Process the response data similarly to regular search
+      if (data.content && Array.isArray(data.content)) {
+        setFilteredUsers(data.content);
+        setUsers(data.content);
+      } else if (Array.isArray(data)) {
+        setFilteredUsers(data);
+        setUsers(data);
+      } else {
+        console.error(
+          "Unexpected response format from initial search API:",
+          data
+        );
+        setFilteredUsers([]);
+        setUsers([]);
+      }
+    } catch (error) {
+      console.error("Error searching users by initial:", error.message);
+      // Try fallback search as a last resort
+      try {
+        const fallbackResults = await fallbackSearch(initial);
+        setFilteredUsers(fallbackResults);
+        setUsers(fallbackResults);
+      } catch (fallbackError) {
+        setFilteredUsers([]);
+        setUsers([]);
+      }
+    }
+  };
+
+  // Fallback search function for when the main search API fails
+  const fallbackSearch = async (query) => {
+    try {
+      console.log("Using fallback search with query:", query);
+
+      // For single character searches, add wildcard-like behavior
+      const searchTerm = query.trim().length === 1 ? `${query}%` : query;
+
+      // Build the URL for the fallback search endpoint
+      const url = new URL(`${process.env.NEXT_PUBLIC_API_URL}/api/users`);
+      url.searchParams.append("search", searchTerm);
+
+      const token = localStorage.getItem("jwt");
+      const options = {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      };
+
+      // Add authorization header if user is logged in
+      if (token) {
+        options.headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await fetch(url.toString(), options);
+
+      if (!response.ok) {
+        console.error("Fallback search also failed:", response.status);
+        return [];
+      }
+
+      const data = await response.json();
+      console.log("Fallback search results:", data);
+      return Array.isArray(data) ? data : [];
+    } catch (error) {
+      console.error("Error in fallback search:", error.message);
+      return [];
+    }
+  };
 
   const handleLogout = () => {
     if (typeof window !== "undefined") {
@@ -93,21 +286,78 @@ export function Header() {
 
   const handleUserSelect = (user) => {
     setShowSearch(false);
+    setShowMobileSearch(false);
     setSearchQuery("");
     setFilteredUsers([]);
+
+    // Debug log user object
+    console.log("User selected from search:", user);
+
+    // Check if we have all the required fields to navigate
+    if (!user || !user.email) {
+      console.error(
+        "Cannot navigate to user profile: Missing user email",
+        user
+      );
+      return;
+    }
+
+    // Store the selected user data in localStorage for easier access
+    try {
+      // Store all user information to ensure we can reconstruct the profile
+      // if the API search fails
+      localStorage.setItem("viewedUserName", user.name || "Unknown User");
+      localStorage.setItem("viewedUserEmail", user.email);
+
+      // Handle profile image
+      if (user.profileImage) {
+        const profileImageUrl = getProfileImageForUser(user);
+        localStorage.setItem("viewedUserProfileImage", profileImageUrl);
+        console.log("Stored profile image URL:", profileImageUrl);
+      } else {
+        // Clear previous profile image if user doesn't have one
+        localStorage.removeItem("viewedUserProfileImage");
+      }
+
+      // Store full user object as JSON for backup
+      try {
+        const userForStorage = {
+          ...user,
+          profileImageUrl: user.profileImage
+            ? getProfileImageForUser(user)
+            : null,
+        };
+        localStorage.setItem("viewedUserData", JSON.stringify(userForStorage));
+      } catch (jsonError) {
+        console.error("Error stringifying user data:", jsonError);
+      }
+
+      console.log("User data successfully stored in localStorage");
+    } catch (error) {
+      console.error("Error storing viewed user data", error);
+    }
+
     // Navigate to user profile using email
-    router.push(`/profile/${encodeURIComponent(user.email)}`);
+    console.log("Navigating to profile of user:", user.email);
+
+    // This is a crucial fix for the "user not found" issue - ensure the email is properly encoded
+    const encodedEmail = encodeURIComponent(user.email);
+    router.push(`/profile/${encodedEmail}`);
   };
 
   // Helper function to get profile image for specific users or validate URLs
   const getProfileImageForUser = (user) => {
+    // Handle null/undefined user
+    if (!user) return "/placeholder.png";
+
     // For users, validate their profile image URL
     if (
       !user.profileImage ||
       user.profileImage === "null" ||
-      user.profileImage === "undefined"
+      user.profileImage === "undefined" ||
+      user.profileImage === ""
     ) {
-      return null;
+      return "/placeholder.png";
     }
 
     // Check if the URL is already absolute (starts with http or https)
@@ -124,6 +374,13 @@ export function Header() {
     }
 
     return user.profileImage;
+  };
+
+  const handleCloseSearch = () => {
+    setShowSearch(false);
+    setShowMobileSearch(false);
+    setSearchQuery("");
+    setFilteredUsers([]);
   };
 
   return (
@@ -231,92 +488,80 @@ export function Header() {
 
         {/* Desktop search and auth */}
         <div className="flex items-center gap-2 relative">
+          {/* Mobile search button */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden"
+            onClick={() => {
+              setShowMobileSearch(!showMobileSearch);
+              setFilteredUsers([]);
+              setSearchQuery("");
+            }}>
+            <Search className="h-5 w-5" />
+            <span className="sr-only">Search</span>
+          </Button>
+
+          {/* Desktop search */}
           {showSearch ? (
             <div className="relative hidden md:block">
-              <Input
-                type="text"
-                placeholder="Search users..."
-                className="w-[200px] pr-8"
-                autoFocus
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-0 top-0 h-full"
-                onClick={() => {
-                  setShowSearch(false);
-                  setSearchQuery("");
-                  setFilteredUsers([]);
-                }}>
-                <X className="h-4 w-4" />
-                <span className="sr-only">Close search</span>
-              </Button>
+              <div className="relative">
+                <Input
+                  type="text"
+                  placeholder="Search users..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full min-w-[240px] pl-9 pr-10 h-10 border-gray-300 focus:border-primary focus:ring-primary"
+                  autoFocus
+                  aria-label="Search users"
+                />
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                {searchLoading && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <svg
+                      className="animate-spin h-5 w-5 text-gray-400"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      aria-hidden="true">
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"></circle>
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                  </div>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8"
+                  onClick={handleCloseSearch}
+                  aria-label="Close search">
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
 
-              {/* Search Results Dropdown */}
-              {searchQuery.trim() !== "" && (
-                <div className="absolute mt-2 w-full bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg shadow-md z-50">
-                  {searchLoading ? (
-                    <div className="p-3 text-center text-sm text-gray-500">
-                      Loading users...
-                    </div>
-                  ) : filteredUsers.length > 0 ? (
-                    <div className="max-h-60 overflow-y-auto">
-                      {filteredUsers.map((user) => (
-                        <div
-                          key={user.id || user.email}
-                          className="flex items-center p-3 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                          onClick={() => handleUserSelect(user)}>
-                          <div className="w-8 h-8 rounded-full overflow-hidden mr-2 bg-gray-200 flex items-center justify-center">
-                            {(() => {
-                              const profileImage = getProfileImageForUser(user);
-                              if (profileImage) {
-                                return (
-                                  <img
-                                    src={profileImage}
-                                    alt={user.name}
-                                    className="w-full h-full object-cover"
-                                    onError={(e) => {
-                                      e.target.onerror = null;
-                                      e.target.src = "/placeholder.png";
-                                    }}
-                                  />
-                                );
-                              } else {
-                                return (
-                                  <div className="text-gray-400 font-bold text-sm">
-                                    {user.name?.charAt(0)?.toUpperCase() || "U"}
-                                  </div>
-                                );
-                              }
-                            })()}
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="font-medium">{user.name}</span>
-                            {user.email && (
-                              <span className="text-xs text-gray-500">
-                                {user.email}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="p-3 text-center text-sm text-gray-500">
-                      No users found
-                    </div>
-                  )}
-                </div>
-              )}
+              {/* Desktop Search Results Dropdown - contained within the parent */}
+              <div className="absolute w-full">{renderSearchResults()}</div>
             </div>
           ) : (
             <Button
               variant="ghost"
               size="icon"
               className="hidden md:flex"
-              onClick={() => setShowSearch(true)}>
+              onClick={() => {
+                setShowSearch(true);
+                setFilteredUsers([]);
+                setSearchQuery("");
+              }}
+              aria-label="Open search">
               <Search className="h-5 w-5" />
               <span className="sr-only">Search</span>
             </Button>
@@ -369,6 +614,160 @@ export function Header() {
           </div>
         </div>
       </div>
+
+      {/* Mobile search overlay */}
+      {showMobileSearch && (
+        <div className="md:hidden px-4 py-3 border-t border-gray-200 bg-background">
+          <div className="relative">
+            <Input
+              type="text"
+              placeholder="Search users..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-10 h-10 border-gray-300 focus:border-primary focus:ring-primary"
+              autoFocus
+              aria-label="Search users"
+            />
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            {searchLoading ? (
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                <svg
+                  className="animate-spin h-5 w-5 text-gray-400"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true">
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+              </div>
+            ) : (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8"
+                onClick={handleCloseSearch}
+                aria-label="Close search">
+                <X className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
+
+          {/* Mobile Search Results - positioned correctly */}
+          <div className="relative">{renderSearchResults()}</div>
+        </div>
+      )}
     </header>
   );
+
+  // Helper function to render search results
+  function renderSearchResults() {
+    // Only show any results container if there's actual loading or results
+    if (
+      !searchLoading &&
+      filteredUsers.length === 0 &&
+      searchQuery.trim() === ""
+    ) {
+      return null;
+    }
+
+    // Add different classes for mobile vs desktop
+    const containerClasses = showMobileSearch
+      ? "mt-2 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 w-full z-40"
+      : "mt-2 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 absolute top-full left-0 right-0 z-50";
+
+    return (
+      <div className={containerClasses}>
+        {searchLoading ? (
+          <div className="p-4 text-center">
+            <svg
+              className="animate-spin h-5 w-5 text-gray-400 mx-auto"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24">
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"></circle>
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p className="text-sm text-gray-500 mt-2">Searching users...</p>
+          </div>
+        ) : filteredUsers.length > 0 ? (
+          <div className="max-h-72 overflow-y-auto">
+            <div className="py-1 border-b border-gray-100 px-3">
+              <p className="text-xs text-gray-500">
+                Search results for "{searchQuery}"
+              </p>
+            </div>
+            <ul className="py-1">
+              {filteredUsers.map((user) => (
+                <li key={user.id || `user-${user.email}`}>
+                  <button
+                    onClick={() => handleUserSelect(user)}
+                    className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center">
+                    <div className="flex-shrink-0 mr-3">
+                      <img
+                        src={getProfileImageForUser(user)}
+                        alt={user.name || "User"}
+                        className="h-10 w-10 rounded-full object-cover border border-gray-200"
+                        onError={(e) => {
+                          e.target.onerror = null;
+                          e.target.src = "/placeholder.png";
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <div className="font-medium text-sm">
+                        {user.name || "Unknown User"}
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {user.email || "No email available"}
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1">
+                        Click to view profile
+                      </div>
+                    </div>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : searchQuery.trim() !== "" ? (
+          <div className="p-4 text-center border-t border-gray-100">
+            <UserSearch className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+            <p className="text-sm text-gray-500">
+              No users found for "{searchQuery}"
+            </p>
+            <p className="text-xs text-gray-400 mt-1">
+              Try a different search term
+            </p>
+          </div>
+        ) : (
+          <div className="p-4 text-center">
+            <UserSearch className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+            <p className="text-sm text-gray-500">Type to search for users</p>
+            <p className="text-xs text-gray-400 mt-1">
+              Search by name or email
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  }
 }
