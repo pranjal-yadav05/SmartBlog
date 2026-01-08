@@ -2,13 +2,13 @@ import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { Clock, User, Trash2 } from "lucide-react";
+import { Clock, User, Trash2, Pencil } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-const BlogCard = ({ post, onDelete, loggedInEmail }) => {
+const BlogCard = ({ post, onDelete, onUpdate, loggedInEmail }) => {
   const router = useRouter()
   return (
-    <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300">
+    <Card className="overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 p-0">
       {/* Image Section */}
       <div onClick={() => router.push(`/blog/${post.id}`)} className="relative w-full h-48 cursor-pointer">
         <Image
@@ -50,15 +50,26 @@ const BlogCard = ({ post, onDelete, loggedInEmail }) => {
           {post.readTime}
         </div>
 
-        {/* Delete Button (Visible only for the author) */}
+        {/* Update and Delete Buttons (Visible only for the author) */}
         {post.author.email === loggedInEmail && (
-          <button
-            className="ml-4 text-red-500 hover:text-red-700"
-            onClick={() => onDelete(post.id)}
-          >
-            <Trash2 className="h-5 w-5" />
-            <span className="sr-only">Delete post</span>
-          </button>
+          <div className="flex items-center gap-2 ml-4">
+            <button
+              className="text-blue-500 hover:text-blue-700"
+              onClick={() => onUpdate(post)}
+              title="Edit post"
+            >
+              <Pencil className="h-5 w-5" />
+              <span className="sr-only">Edit post</span>
+            </button>
+            <button
+              className="text-red-500 hover:text-red-700"
+              onClick={() => onDelete(post.id)}
+              title="Delete post"
+            >
+              <Trash2 className="h-5 w-5" />
+              <span className="sr-only">Delete post</span>
+            </button>
+          </div>
         )}
       </CardFooter>
     </Card>

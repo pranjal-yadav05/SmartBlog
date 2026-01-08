@@ -42,6 +42,8 @@ export default function BlogPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [isUpdateMode, setIsUpdateMode] = useState(false);
+  const [postToUpdate, setPostToUpdate] = useState(null);
   const { addToast } = useToast();
   const [generating, setGenerating] = useState(false);
   const [loggedInEmail, setLoggedInEmail] = useState(null);
@@ -211,13 +213,13 @@ export default function BlogPage() {
 
   const handleDeletePost = async (postId) => {
     if (!window.confirm("Are you sure you want to delete this post?")) return;
-
+    const token = localStorage.getItem("jwt");
     try {
       const response = await fetch(`${API_URL}/api/posts/${postId}`, {
         method: "DELETE",
         headers: {
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
-          email: loggedInEmail, // ✅ Send user email in headers
         },
       });
 
@@ -233,6 +235,137 @@ export default function BlogPage() {
     } catch (err) {
       console.error("Error deleting post:", err);
       addToast({ title: "Error", description: "Could not delete post." });
+    }
+  };
+
+  // Handle update post - fetch full post data and open dialog
+  const handleUpdateClick = async (post) => {
+    const token = localStorage.getItem("jwt");
+    try {
+      // Fetch the full post data
+      const response = await fetch(`${API_URL}/api/posts/${post.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) throw new Error("Failed to fetch post");
+
+      const fullPost = await response.json();
+
+      // Set the post to update and populate the form
+      setPostToUpdate(fullPost);
+      setNewPost({
+        title: fullPost.title || "",
+        content: fullPost.content || "",
+        category: fullPost.category || "Web Development",
+        authorEmail: fullPost.author?.email || loggedInEmail,
+        image: null, // Don't pre-populate image, user can upload new one
+      });
+
+      // Check if category is custom
+      setIsCustomCategory(!availableCategories.includes(fullPost.category));
+
+      setIsUpdateMode(true);
+      setCreateDialogOpen(true);
+    } catch (err) {
+      console.error("Error fetching post for update:", err);
+      addToast({
+        title: "Error",
+        description: "Could not load post for editing.",
+      });
+    }
+  };
+
+  // Update post handler
+  const handleUpdatePost = async (e) => {
+    e.preventDefault();
+    if (!isLoggedIn || !postToUpdate) {
+      addToast({
+        title: "Error",
+        description: "Cannot update post.",
+      });
+      return;
+    }
+    setSubmitting(true);
+
+    try {
+      const token = localStorage.getItem("jwt");
+
+      let response;
+
+      // If a new image is selected, use FormData (matches backend multipart endpoint)
+      if (newPost.image) {
+        const formData = new FormData();
+        formData.append("title", newPost.title);
+        formData.append("content", newPost.content);
+        formData.append("category", newPost.category);
+        formData.append("imageFile", newPost.image); // Backend expects "imageFile"
+
+        response = await fetch(`${API_URL}/api/posts/${postToUpdate.id}`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            // Don't set Content-Type header - browser will set it with boundary for FormData
+          },
+          body: formData,
+        });
+      } else {
+        // If no image, send JSON (matching backend @RequestBody annotation)
+        const updatedPostData = {
+          title: newPost.title,
+          content: newPost.content,
+          category: newPost.category,
+        };
+
+        response = await fetch(`${API_URL}/api/posts/${postToUpdate.id}`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(updatedPostData),
+        });
+      }
+
+      if (!response.ok) {
+        const errorData = await response
+          .json()
+          .catch(() => ({ message: "Failed to update post" }));
+        throw new Error(errorData.message || "Failed to update post");
+      }
+
+      const updatedPost = await response.json();
+
+      // Refresh the blog data
+      fetchBlogData();
+
+      // Reset form and close dialog
+      setNewPost({
+        title: "",
+        content: "",
+        category: "Web Development",
+        authorEmail: "",
+        image: null,
+      });
+      setIsCustomCategory(false);
+      setIsUpdateMode(false);
+      setPostToUpdate(null);
+      setCreateDialogOpen(false);
+
+      addToast({
+        title: "Post updated",
+        description: "Your post has been updated successfully!",
+      });
+    } catch (err) {
+      console.error("Error updating post:", err);
+      addToast({
+        title: "Error",
+        description: err.message || "Could not update post.",
+      });
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -275,6 +408,7 @@ export default function BlogPage() {
         authorEmail: "",
         image: null,
       });
+      setIsCustomCategory(false);
       setCreateDialogOpen(false);
       addToast({
         title: "Post created",
@@ -369,10 +503,48 @@ export default function BlogPage() {
   };
 
   // Helper functions
+  // Function to remove markdown formatting from content
+  const stripMarkdown = (text) => {
+    if (!text) return "";
+
+    // Remove markdown headers (# ## ### etc.)
+    text = text.replace(/^#{1,6}\s+/gm, "");
+
+    // Remove markdown bold/italic (**text**, *text*, __text__, _text_)
+    text = text.replace(/\*\*([^*]+)\*\*/g, "$1");
+    text = text.replace(/\*([^*]+)\*/g, "$1");
+    text = text.replace(/__([^_]+)__/g, "$1");
+    text = text.replace(/_([^_]+)_/g, "$1");
+
+    // Remove markdown links [text](url)
+    text = text.replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1");
+
+    // Remove markdown code blocks ```code``` and `code`
+    text = text.replace(/```[\s\S]*?```/g, "");
+    text = text.replace(/`([^`]+)`/g, "$1");
+
+    // Remove markdown lists (-, *, +, 1.)
+    text = text.replace(/^[\s]*[-*+]\s+/gm, "");
+    text = text.replace(/^[\s]*\d+\.\s+/gm, "");
+
+    // Remove markdown blockquotes (>)
+    text = text.replace(/^>\s+/gm, "");
+
+    // Clean up extra whitespace and newlines
+    text = text.replace(/\n+/g, " ");
+    text = text.replace(/\s+/g, " ");
+
+    return text.trim();
+  };
+
   const getExcerpt = (content, maxLength = 120) => {
     if (!content) return "No content available";
-    if (content.length <= maxLength) return content;
-    return content.substring(0, maxLength).trim() + "...";
+
+    // First strip markdown formatting
+    const cleanContent = stripMarkdown(content);
+
+    if (cleanContent.length <= maxLength) return cleanContent;
+    return cleanContent.substring(0, maxLength).trim() + "...";
   };
 
   const formatDate = (dateString) => {
@@ -507,7 +679,20 @@ export default function BlogPage() {
                 <div className="flex justify-between items-center mb-4">
                   <h1 className="text-3xl font-bold tracking-tight">Blog</h1>
                   {isLoggedIn ? (
-                    <Button onClick={() => setCreateDialogOpen(true)}>
+                    <Button
+                      onClick={() => {
+                        setIsUpdateMode(false);
+                        setPostToUpdate(null);
+                        setNewPost({
+                          title: "",
+                          content: "",
+                          category: "Web Development",
+                          authorEmail: loggedInEmail || "",
+                          image: null,
+                        });
+                        setIsCustomCategory(false);
+                        setCreateDialogOpen(true);
+                      }}>
                       <Plus className="mr-2 h-4 w-4" /> New Post
                     </Button>
                   ) : (
@@ -559,6 +744,7 @@ export default function BlogPage() {
                       post={post}
                       loggedInEmail={loggedInEmail}
                       onDelete={handleDeletePost}
+                      onUpdate={handleUpdateClick}
                     />
                   ))}
                 </div>
@@ -698,13 +884,33 @@ export default function BlogPage() {
             </div>
           </div>
 
-          {/* Create Post Dialog */}
-          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+          {/* Create/Update Post Dialog */}
+          <Dialog
+            open={createDialogOpen}
+            onOpenChange={(open) => {
+              setCreateDialogOpen(open);
+              if (!open) {
+                // Reset form when dialog closes
+                setIsUpdateMode(false);
+                setPostToUpdate(null);
+                setNewPost({
+                  title: "",
+                  content: "",
+                  category: "Web Development",
+                  authorEmail: "",
+                  image: null,
+                });
+                setIsCustomCategory(false);
+              }
+            }}>
             <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
               <DialogHeader>
-                <DialogTitle>Create New Blog Post</DialogTitle>
+                <DialogTitle>
+                  {isUpdateMode ? "Update Blog Post" : "Create New Blog Post"}
+                </DialogTitle>
               </DialogHeader>
-              <form onSubmit={handleCreatePost}>
+              <form
+                onSubmit={isUpdateMode ? handleUpdatePost : handleCreatePost}>
                 <div className="grid gap-4 py-4">
                   <div className="grid gap-2">
                     <Label htmlFor="title">Title</Label>
@@ -774,13 +980,44 @@ export default function BlogPage() {
                   </div>
 
                   <div className="grid gap-2">
-                    <Label htmlFor="image">Upload Image</Label>
+                    <Label htmlFor="image">
+                      {isUpdateMode
+                        ? "Update Image (optional)"
+                        : "Upload Image"}
+                    </Label>
+                    {isUpdateMode && postToUpdate?.imageUrl && (
+                      <div className="mb-2">
+                        <p className="text-sm text-gray-500 mb-2">
+                          Current image:
+                        </p>
+                        <img
+                          src={postToUpdate.imageUrl}
+                          alt="Current post image"
+                          className="w-full h-32 object-cover rounded-md border"
+                        />
+                        <p className="text-xs text-gray-400 mt-1">
+                          Upload a new image to replace the current one
+                        </p>
+                      </div>
+                    )}
                     <Input
                       id="image"
                       type="file"
                       accept="image/*"
                       onChange={handleInputChange}
                     />
+                    {newPost.image && (
+                      <div className="mt-2">
+                        <p className="text-sm text-gray-500 mb-2">
+                          New image preview:
+                        </p>
+                        <img
+                          src={URL.createObjectURL(newPost.image)}
+                          alt="New post image preview"
+                          className="w-full h-32 object-cover rounded-md border"
+                        />
+                      </div>
+                    )}
                   </div>
 
                   {/* ✅ Textarea with scrollability */}
@@ -822,8 +1059,10 @@ export default function BlogPage() {
                     {submitting ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Publishing...
+                        {isUpdateMode ? "Updating..." : "Publishing..."}
                       </>
+                    ) : isUpdateMode ? (
+                      "Update Post"
                     ) : (
                       "Publish Post"
                     )}

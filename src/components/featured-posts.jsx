@@ -1,66 +1,110 @@
 "use client";
 
-import { useEffect, useState } from "react"
-import Image from "next/image"
-import Link from "next/link"
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { useEffect, useState } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import LoadingScreen from "./loading-screen";
 
 export function FeaturedPosts() {
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
-  const [featuredPosts, setFeaturedPosts] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
+  const [featuredPosts, setFeaturedPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const fetchPosts = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/posts/`)
-        
+        const response = await fetch(`${API_URL}/api/posts/`);
+
         if (!response.ok) {
-          throw new Error('Failed to fetch posts')
+          throw new Error("Failed to fetch posts");
         }
-        
-        const data = await response.json()
-        
+
+        const data = await response.json();
+
         // Get the 3 most recent posts
         const recentPosts = data
           .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-          .slice(0, 3)
-          
-        setFeaturedPosts(recentPosts)
-        setLoading(false)
+          .slice(0, 3);
+
+        setFeaturedPosts(recentPosts);
+        setLoading(false);
       } catch (err) {
-        setError(err.message)
-        setLoading(false)
+        setError(err.message);
+        setLoading(false);
       }
-    }
+    };
 
-    fetchPosts()
-  }, [])
+    fetchPosts();
+  }, []);
 
-  // Function to extract a short excerpt from the content
+  // Function to remove markdown formatting from content
+  const stripMarkdown = (text) => {
+    if (!text) return "";
+
+    // Remove markdown headers (# ## ### etc.)
+    text = text.replace(/^#{1,6}\s+/gm, "");
+
+    // Remove markdown bold/italic (**text**, *text*, __text__, _text_)
+    text = text.replace(/\*\*([^*]+)\*\*/g, "$1");
+    text = text.replace(/\*([^*]+)\*/g, "$1");
+    text = text.replace(/__([^_]+)__/g, "$1");
+    text = text.replace(/_([^_]+)_/g, "$1");
+
+    // Remove markdown links [text](url)
+    text = text.replace(/\[([^\]]+)\]\([^\)]+\)/g, "$1");
+
+    // Remove markdown code blocks ```code``` and `code`
+    text = text.replace(/```[\s\S]*?```/g, "");
+    text = text.replace(/`([^`]+)`/g, "$1");
+
+    // Remove markdown lists (-, *, +, 1.)
+    text = text.replace(/^[\s]*[-*+]\s+/gm, "");
+    text = text.replace(/^[\s]*\d+\.\s+/gm, "");
+
+    // Remove markdown blockquotes (>)
+    text = text.replace(/^>\s+/gm, "");
+
+    // Clean up extra whitespace and newlines
+    text = text.replace(/\n+/g, " ");
+    text = text.replace(/\s+/g, " ");
+
+    return text.trim();
+  };
+
+  // Function to extract a short excerpt from the content (with markdown stripped)
   const getExcerpt = (content, maxLength = 120) => {
-    if (!content) return ""
-    if (content.length <= maxLength) return content
-    return content.substring(0, maxLength).trim() + "..."
-  }
+    if (!content) return "";
+
+    // First strip markdown formatting
+    const cleanContent = stripMarkdown(content);
+
+    if (cleanContent.length <= maxLength) return cleanContent;
+    return cleanContent.substring(0, maxLength).trim() + "...";
+  };
 
   // Function to format the date
   const formatDate = (dateString) => {
-    const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    })
-  }
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
 
   if (loading) {
-    return <LoadingScreen message="Loading featured posts... This may take up to a minute." />;
+    return (
+      <LoadingScreen message="Loading featured posts... This may take up to a minute." />
+    );
   }
-  
 
   if (error) {
     return (
@@ -69,7 +113,7 @@ export function FeaturedPosts() {
           <p className="text-red-500">Error loading posts: {error}</p>
         </div>
       </section>
-    )
+    );
   }
 
   return (
@@ -77,7 +121,9 @@ export function FeaturedPosts() {
       <div className="container px-4 md:px-6">
         <div className="flex flex-col items-center justify-center space-y-4 text-center">
           <div className="space-y-2">
-            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">Featured Posts</h2>
+            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">
+              Featured Posts
+            </h2>
             <p className="max-w-[700px] text-gray-500 md:text-xl/relaxed dark:text-gray-400">
               Discover our most popular and trending articles
             </p>
@@ -86,29 +132,37 @@ export function FeaturedPosts() {
         <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 py-12 md:grid-cols-2 lg:grid-cols-3">
           {featuredPosts.length > 0 ? (
             featuredPosts.map((post) => (
-              <Card key={post.id} className="overflow-hidden">
+              <Card key={post.id} className="overflow-hidden p-0 flex flex-col">
                 <div className="relative h-48 w-full">
-                  <Image 
-                    src={post.imageUrl || "/placeholder.svg"} 
-                    alt={post.title} 
-                    fill 
-                    className="object-cover" 
+                  <Image
+                    src={post.imageUrl || "/placeholder.svg"}
+                    alt={post.title}
+                    fill
+                    className="object-cover"
                   />
                 </div>
                 <CardHeader className="p-4">
                   <div className="flex items-center justify-between">
                     <Badge variant="secondary">{post.category}</Badge>
-                    <div className="text-sm text-gray-500">{formatDate(post.createdAt)}</div>
+                    <div className="text-sm text-gray-500">
+                      {formatDate(post.createdAt)}
+                    </div>
                   </div>
                   <Link href={`/blog/${post.id}`} className="hover:underline">
-                    <h3 className="text-xl font-bold leading-tight mt-2">{post.title}</h3>
+                    <h3 className="text-xl font-bold leading-tight mt-2">
+                      {post.title}
+                    </h3>
                   </Link>
                 </CardHeader>
-                <CardContent className="p-4 pt-0">
-                  <p className="text-gray-500 line-clamp-3">{getExcerpt(post.content)}</p>
+                <CardContent className="p-4 pt-0 flex-1">
+                  <p className="text-gray-500 line-clamp-3">
+                    {getExcerpt(post.content)}
+                  </p>
                 </CardContent>
-                <CardFooter className="p-4 pt-0">
-                  <Link href={`/blog/${post.id}`} className="text-sm font-medium text-primary hover:underline">
+                <CardFooter className="p-4 pt-0 mt-auto">
+                  <Link
+                    href={`/blog/${post.id}`}
+                    className="text-sm font-medium text-primary hover:underline">
                     Read more
                   </Link>
                 </CardFooter>
@@ -122,5 +176,5 @@ export function FeaturedPosts() {
         </div>
       </div>
     </section>
-  )
+  );
 }

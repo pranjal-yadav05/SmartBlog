@@ -9,12 +9,12 @@ const Footer = () => {
         </p>
         <div className="flex gap-4">
           <Link
-            href="#"
+            href="/terms"
             className="text-sm text-gray-500 hover:underline dark:text-gray-400">
             Terms
           </Link>
           <Link
-            href="#"
+            href="/privacy"
             className="text-sm text-gray-500 hover:underline dark:text-gray-400">
             Privacy
           </Link>
@@ -24,7 +24,7 @@ const Footer = () => {
             Unsubscribe
           </Link>
           <Link
-            href="#"
+            href="/contact"
             className="text-sm text-gray-500 hover:underline dark:text-gray-400">
             Contact
           </Link>
