@@ -10,6 +10,7 @@ import Footer from "@/components/footer";
 function LoginContent() {
   const [isLogin, setIsLogin] = useState(true);
   const [isMounted, setIsMounted] = useState(false);
+  const [oauthError, setOauthError] = useState("");
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -29,6 +30,26 @@ function LoginContent() {
     } else {
       setIsLogin(true);
     }
+
+    // Check for OAuth error parameter
+    const error = searchParams.get("error");
+    if (error) {
+      // Map error codes to user-friendly messages
+      const errorMessages = {
+        oauth_failure:
+          "Google authentication failed. Please try again or use email/password to login.",
+        no_token: "Authentication token was not received. Please try again.",
+        auth_failed: "Authentication failed. Please try again.",
+      };
+      setOauthError(
+        errorMessages[error] ||
+          "An error occurred during authentication. Please try again."
+      );
+
+      // Clear the error from URL after displaying it
+      const newUrl = window.location.pathname + (tab ? `?tab=${tab}` : "");
+      window.history.replaceState({}, "", newUrl);
+    }
   }, [router, searchParams]);
 
   return (
@@ -42,8 +63,15 @@ function LoginContent() {
         </p>
       </div>
 
+      {/* Display OAuth error if present */}
+      {oauthError && (
+        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+          <p className="text-sm text-red-600 dark:text-red-400">{oauthError}</p>
+        </div>
+      )}
+
       {/* Only render AuthForm when component is mounted */}
-      {isMounted && <AuthForm isLogin={isLogin} />}
+      {isMounted && <AuthForm isLogin={isLogin} oauthError={oauthError} />}
 
       <div className="mt-6 text-center">
         {isLogin ? (

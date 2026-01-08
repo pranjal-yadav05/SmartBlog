@@ -20,7 +20,7 @@ import { Mail, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation"; // Changed from next/router to next/navigation
 
-const AuthForm = ({ isLogin }) => {
+const AuthForm = ({ isLogin, oauthError }) => {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
