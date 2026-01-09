@@ -86,7 +86,7 @@ export default function UnsubscribePage() {
     <div className="flex min-h-screen flex-col">
       <Header />
       <main className="flex-1 py-12 md:py-24 lg:py-32">
-        <div className="container px-4 md:px-6">
+        <div className="w-full max-w-7xl mx-auto px-4 md:px-6">
           <div className="flex justify-center">
             <Card className="w-full max-w-md">
               <CardHeader>

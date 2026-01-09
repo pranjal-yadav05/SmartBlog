@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Header } from "@/components/header";
 import { useState, useEffect } from "react";
+import { Loader2 } from "lucide-react";
 import Footer from "@/components/footer";
 import LoadingScreen from "@/components/loading-screen";
 
@@ -19,6 +20,7 @@ export default function Profile() {
   const [userPosts, setUserPosts] = useState([]); // Store posts separately
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPostsLoading, setIsPostsLoading] = useState(false);
   const [error, setError] = useState(null);
   // Pagination state
   const [currentPage, setCurrentPage] = useState(0);
@@ -97,6 +99,7 @@ export default function Profile() {
 
   const fetchUserPosts = async (email) => {
     try {
+      setIsPostsLoading(true);
       // Use the paginated endpoint
       const response = await fetch(
         `${API_URL}/api/posts/user/${email}/paginated?page=${currentPage}&size=${pageSize}&sortBy=createdAt&direction=desc`,
@@ -123,7 +126,7 @@ export default function Profile() {
     } catch (error) {
       console.error("Error fetching user posts:", error);
     } finally {
-      setIsLoading(false);
+      setIsPostsLoading(false);
     }
   };
 
@@ -152,7 +155,7 @@ export default function Profile() {
       <div className="flex min-h-screen flex-col">
         <Header />
         <main className="flex-1 flex items-center justify-center">
-          <div className="container px-4 md:px-6 text-center">
+          <div className="w-full max-w-7xl mx-auto px-4 md:px-6 text-center">
             <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl mb-4">
               Please Log In
             </h2>
@@ -172,9 +175,9 @@ export default function Profile() {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
-      <main className="flex-1">
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-b from-white to-gray-100 dark:from-gray-900 dark:to-gray-800">
-          <div className="container px-4 md:px-6">
+      <main className="flex flex-1">
+        <section className="flex flex-1 flex-col w-full bg-gradient-to-b from-white to-gray-100 dark:from-gray-900 dark:to-gray-800">
+          <div className="w-full max-w-7xl mx-auto px-4 md:px-6 py-12 md:py-24 lg:py-32">
             <div className="flex flex-col items-center text-center">
               <img
                 src={userData.profilePicture}
@@ -196,7 +199,14 @@ export default function Profile() {
               <h2 className="text-3xl font-bold tracking-tighter md:text-4xl mb-5 text-center">
                 Your Posts
               </h2>
-              {userPosts.length > 0 ? (
+              {isPostsLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
+                  <span className="ml-2 text-gray-500">
+                    Loading your posts...
+                  </span>
+                </div>
+              ) : userPosts.length > 0 ? (
                 <>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {userPosts.map((post) => (
@@ -206,7 +216,7 @@ export default function Profile() {
                         </CardHeader>
                         <CardContent>
                           <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-3">
-                            {post.content}
+                            {post.content.replace(/^#+\s*/gm, "")}
                           </p>
                         </CardContent>
                         <CardFooter>

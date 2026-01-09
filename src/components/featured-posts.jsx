@@ -109,7 +109,7 @@ export function FeaturedPosts() {
   if (error) {
     return (
       <section className="w-full py-12 md:py-24 bg-gray-50 dark:bg-gray-900">
-        <div className="container px-4 md:px-6 text-center">
+        <div className="w-full max-w-7xl mx-auto px-4 md:px-6 text-center">
           <p className="text-red-500">Error loading posts: {error}</p>
         </div>
       </section>
@@ -118,7 +118,7 @@ export function FeaturedPosts() {
 
   return (
     <section className="w-full py-12 md:py-24 bg-gray-50 bgdark:bg-gray-900">
-      <div className="container px-4 md:px-6">
+      <div className="w-full max-w-7xl mx-auto px-4 md:px-6">
         <div className="flex flex-col items-center justify-center space-y-4 text-center">
           <div className="space-y-2">
             <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">

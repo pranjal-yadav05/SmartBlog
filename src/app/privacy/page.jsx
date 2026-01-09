@@ -9,7 +9,7 @@ export default function Privacy() {
       <Header />
       <main className="flex-1">
         <section className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-b from-white to-gray-100 dark:from-gray-900 dark:to-gray-800">
-          <div className="container px-4 md:px-6">
+          <div className="w-full max-w-7xl mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl">
                 Privacy Policy
@@ -22,7 +22,7 @@ export default function Privacy() {
         </section>
 
         <section className="w-full py-12 md:py-24 lg:py-32 bg-white dark:bg-gray-950">
-          <div className="container px-4 md:px-6 max-w-4xl">
+          <div className="w-full max-w-4xl mx-auto px-4 md:px-6">
             <div className="space-y-8 prose prose-lg dark:prose-invert max-w-none">
               <div>
                 <h2 className="text-2xl font-bold mb-4">1. Information We Collect</h2>

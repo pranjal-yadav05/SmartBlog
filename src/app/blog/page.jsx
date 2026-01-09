@@ -656,7 +656,7 @@ export default function BlogPage() {
       <div className="flex min-h-screen flex-col">
         <Header />
         <main className="flex-1 py-6 md:py-10">
-          <div className="container px-4 md:px-6 text-center">
+          <div className="w-full max-w-7xl mx-auto px-4 md:px-6 text-center">
             <p className="text-red-500">Error loading blog content: {error}</p>
             <Button onClick={() => window.location.reload()} className="mt-4">
               Try Again
@@ -671,7 +671,7 @@ export default function BlogPage() {
     <div className="flex min-h-screen flex-col">
       <Header />
       <main className="flex-1 py-6 md:py-10">
-        <div className="container px-4 md:px-6">
+        <div className="w-full max-w-7xl mx-auto px-4 md:px-6">
           <div className="flex flex-col gap-4 md:flex-row">
             {/* Main content */}
             <div className="flex-1">

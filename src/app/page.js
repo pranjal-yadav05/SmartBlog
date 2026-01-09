@@ -18,14 +18,58 @@ import Footer from "@/components/footer";
 export default function Home() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [typedTitle, setTypedTitle] = useState("");
+  const [isTypingDone, setIsTypingDone] = useState(false);
 
   useEffect(() => {
-    // Set mounted to true when component mounts in browser
+    // Set mounted to true when component mounts in browsery
     setIsMounted(true);
 
     // Check localStorage for JWT
     const token = localStorage.getItem("jwt");
     setIsLoggedIn(!!token);
+  }, []);
+
+  useEffect(() => {
+    const hasAnimated = sessionStorage.getItem("smartblog-animated");
+
+    if (hasAnimated) {
+      setTypedTitle("SmartBlog");
+      setIsTypingDone(true);
+      return;
+    }
+
+    const FULL_TITLE = "SmartBlog";
+    let index = 0;
+    let timeoutId;
+
+    const typeNext = () => {
+      index += 1;
+      setTypedTitle(FULL_TITLE.slice(0, index));
+
+      if (index >= FULL_TITLE.length) {
+        setTimeout(() => {
+          setIsTypingDone(true);
+          sessionStorage.setItem("smartblog-animated", "true");
+        }, 800)
+        
+        return;
+      }
+
+      const char = FULL_TITLE[index - 1];
+      const base = 100 + Math.random() * 150;
+      const delay = char === char.toUpperCase() ? base + 100 : base;
+
+      // ⏱️ random delay per character (human-like)
+      const randomDelay = delay + Math.random() * 250; // 120ms – 300ms
+
+      timeoutId = setTimeout(typeNext, randomDelay);
+    };
+
+    // initial delay before typing starts (optional, feels natural)
+    timeoutId = setTimeout(typeNext, 200);
+
+    return () => clearTimeout(timeoutId);
   }, []);
 
   if (!isMounted) return null;
@@ -34,16 +78,43 @@ export default function Home() {
     <div className="flex min-h-screen flex-col">
       <Header />
       <main className="flex-1">
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-b from-white to-gray-100 dark:from-gray-900 dark:to-gray-800">
-          <div className="container px-4 md:px-6">
+        <section className="w-full min-h-[calc(100vh-80px)] py-12 md:py-24 lg:py-32 flex items-center bg-gradient-to-b from-white to-gray-100 dark:from-gray-900 dark:to-gray-800">
+          <div className="w-full max-w-7xl mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
                 <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl lg:text-6xl">
-                  Welcome to <span className="mx-2 logo">SmartBlog</span>
+                  Welcome to{" "}
+                  <span className="mx-2 logo inline-flex items-center">
+                    {typedTitle}
+                    {!isTypingDone && (
+                      <span className="ml-1 h-7 w-[2px] bg-current animate-pulse" />
+                    )}
+                  </span>
                 </h1>
-                <p className="mx-auto max-w-[700px] text-gray-500 md:text-xl dark:text-gray-400">
-                  Your source for insightful articles, tutorials, and the latest
-                  trends in technology.
+                <p className="mx-auto mt-5 max-w-[700px] text-gray-500 md:text-xl dark:text-gray-400">
+                  We{" "}
+                  <span
+                    className={`inline-block transition-all duration-500 ease-out
+      ${
+        isTypingDone
+          ? "font-semibold text-gray-900 dark:text-white scale-[1.03]"
+          : "font-normal text-gray-500 dark:text-gray-400 scale-100"
+      }
+    `}>
+                    present
+                  </span>{" "}
+                  what you want. You decide {" "}
+                  <span
+                    className={`inline-block transition-all duration-500 ease-out delay-100
+      ${
+        isTypingDone
+          ? "font-semibold text-gray-900 dark:text-white scale-[1.03]"
+          : "font-normal text-gray-500 dark:text-gray-400 scale-100"
+      }
+    `}>
+                  what matters
+                  </span>
+                  .
                 </p>
               </div>
               <div className="space-x-4">
@@ -70,7 +141,7 @@ export default function Home() {
         {/* Conditionally render this section based on the login status */}
         {isLoggedIn ? (
           <section className="w-full py-12 md:py-24 lg:py-32 bg-white dark:bg-gray-950">
-            <div className="container px-4 md:px-6">
+            <div className="w-full max-w-7xl mx-auto px-4 md:px-6">
               <div className="mx-auto grid max-w-5xl items-center gap-6 py-12 lg:grid-cols-2 lg:gap-12">
                 <div className="space-y-4">
                   <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">
@@ -120,7 +191,7 @@ export default function Home() {
           </section>
         ) : (
           <section className="w-full py-12 md:py-24 lg:py-32 bg-white dark:bg-gray-950">
-            <div className="container px-4 md:px-6">
+            <div className="w-full max-w-7xl mx-auto px-4 md:px-6">
               <div className="mx-auto grid max-w-5xl items-center gap-6 py-12 lg:grid-cols-2 lg:gap-12">
                 <div className="space-y-4">
                   <h2 className="text-3xl font-bold tracking-tighter md:text-4xl">

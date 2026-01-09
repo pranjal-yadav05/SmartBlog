@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Header } from "@/components/header";
 import { useState, useEffect } from "react";
+import { Loader2 } from "lucide-react";
 import Footer from "@/components/footer";
 import LoadingScreen from "@/components/loading-screen";
 import { useParams } from "next/navigation";
@@ -19,6 +20,7 @@ export default function UserProfile() {
   const [userData, setUserData] = useState(null);
   const [userPosts, setUserPosts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPostsLoading, setIsPostsLoading] = useState(false);
   const [error, setError] = useState(null);
   // Pagination state
   const [currentPage, setCurrentPage] = useState(0);
@@ -77,7 +79,7 @@ export default function UserProfile() {
               profilePicture:
                 parsedUser.profileImageUrl || parsedUser.profileImage || null,
             });
-            fetchUserPosts(parsedUser.email);
+            setIsLoading(false);
             return;
           }
         } catch (e) {
@@ -152,8 +154,7 @@ export default function UserProfile() {
             ? user.profileImage
             : null,
       });
-
-      fetchUserPosts(user.email);
+      setIsLoading(false);
     } catch (err) {
       console.error("Error fetching user profile:", err);
 
@@ -175,7 +176,7 @@ export default function UserProfile() {
               profilePicture:
                 parsedUser.profileImageUrl || parsedUser.profileImage || null,
             });
-            fetchUserPosts(parsedUser.email);
+            setIsLoading(false);
             return;
           }
         }
@@ -202,7 +203,7 @@ export default function UserProfile() {
           email: viewedUserEmail,
           profilePicture: viewedUserProfileImage || null,
         });
-        fetchUserPosts(viewedUserEmail);
+        setIsLoading(false);
         return;
       }
 
@@ -213,6 +214,7 @@ export default function UserProfile() {
 
   const fetchUserPosts = async (email) => {
     try {
+      setIsPostsLoading(true);
       console.log("Fetching posts for user email:", email);
 
       // Use the paginated endpoint
@@ -254,7 +256,7 @@ export default function UserProfile() {
       setTotalPages(0);
       setTotalItems(0);
     } finally {
-      setIsLoading(false);
+      setIsPostsLoading(false);
     }
   };
 
@@ -317,7 +319,7 @@ export default function UserProfile() {
       <div className="flex min-h-screen flex-col">
         <Header />
         <main className="flex-1 flex items-center justify-center">
-          <div className="container px-4 md:px-6 text-center">
+          <div className="w-full max-w-7xl mx-auto px-4 md:px-6 text-center">
             <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl mb-4">
               User Not Found
             </h2>
@@ -339,9 +341,9 @@ export default function UserProfile() {
   return (
     <div className="flex min-h-screen flex-col">
       <Header />
-      <main className="flex-1">
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-b from-white to-gray-100 dark:from-gray-900 dark:to-gray-800">
-          <div className="container px-4 md:px-6">
+      <main className="flex flex-1">
+        <section className="flex flex-1 flex-col w-full bg-gradient-to-b from-white to-gray-100 dark:from-gray-900 dark:to-gray-800">
+          <div className="w-full max-w-7xl mx-auto px-4 md:px-6 py-12 md:py-24 lg:py-32">
             <div className="flex flex-col items-center text-center">
               {(() => {
                 const profileImage = getProfileImageForUser(userData);
@@ -385,7 +387,15 @@ export default function UserProfile() {
               <h2 className="text-3xl font-bold tracking-tighter md:text-4xl mb-5 text-center">
                 {isCurrentUser ? "Your Posts" : `${userData.name}'s Posts`}
               </h2>
-              {userPosts.length > 0 ? (
+              {isPostsLoading ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
+                  <span className="ml-2 text-gray-500">
+                    Loading {isCurrentUser ? "your" : `${userData.name}'s`}{" "}
+                    posts...
+                  </span>
+                </div>
+              ) : userPosts.length > 0 ? (
                 <>
                   <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {userPosts.map((post) => (
