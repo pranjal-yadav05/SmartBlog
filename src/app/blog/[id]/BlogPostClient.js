@@ -106,13 +106,20 @@ export default function BlogPostClient({ post }) {
               blockquote: ({ node, ...props }) => (
                 <blockquote className="border-l-4 border-primary pl-6 py-2 my-8 italic text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-900/50 rounded-r-lg" {...props} />
               ),
-              code: ({ node, inline, ...props }) => 
-                inline ? (
-                  <code className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-pink-600 dark:text-pink-400 font-mono text-sm" {...props} />
+              code: ({ node, className, children, ...props }) => {
+                const match = /language-(\w+)/.exec(className || "");
+                const isInline = !match;
+                
+                return isInline ? (
+                  <code className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-pink-600 dark:text-pink-400 font-mono text-sm" {...props}>
+                    {children}
+                  </code>
                 ) : (
                   <div className="my-8 rounded-xl overflow-hidden shadow-lg border dark:border-gray-800">
                     <div className="bg-gray-100 dark:bg-gray-800 px-4 py-2 flex items-center justify-between border-b dark:border-gray-800">
-                      <span className="text-xs font-mono text-gray-500 uppercase tracking-widest font-bold">Code Block</span>
+                      <span className="text-xs font-mono text-gray-500 uppercase tracking-widest font-bold">
+                        {match[1] ? match[1].toUpperCase() : "CODE BLOCK"}
+                      </span>
                       <div className="flex gap-1.5">
                         <div className="w-2.5 h-2.5 rounded-full bg-red-400"></div>
                         <div className="w-2.5 h-2.5 rounded-full bg-amber-400"></div>
@@ -120,10 +127,13 @@ export default function BlogPostClient({ post }) {
                       </div>
                     </div>
                     <pre className="p-6 bg-gray-50 dark:bg-black/40 overflow-x-auto">
-                      <code className="text-sm sm:text-base font-mono leading-relaxed" {...props} />
+                      <code className={className} {...props}>
+                        {children}
+                      </code>
                     </pre>
                   </div>
-                ),
+                );
+              },
               table: ({ node, ...props }) => (
                 <div className="overflow-x-auto my-8 rounded-lg border dark:border-gray-800">
                   <table className="w-full border-collapse" {...props} />

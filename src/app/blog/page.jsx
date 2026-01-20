@@ -1194,21 +1194,44 @@ function BlogContent() {
                     </div>
 
                     {showMarkdownGuide && (
-                      <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg border dark:border-gray-800 text-xs text-gray-600 dark:text-gray-400 grid grid-cols-2 gap-x-6 gap-y-2 mb-2 animate-in fade-in slide-in-from-top-2">
-                        <div className="space-y-1">
-                          <p><span className="font-mono text-primary font-bold"># Heading</span> - Larger Text</p>
-                          <p><span className="font-mono text-primary font-bold">## Heading</span> - Section Title</p>
-                          <p><span className="font-mono text-primary font-bold">**Bold Content**</span> - Emphasis</p>
-                          <p><span className="font-mono text-primary font-bold">*Italic Content*</span> - Subtle Emphasis</p>
+                      <div className="bg-gray-50 dark:bg-gray-900/50 p-5 rounded-xl border dark:border-gray-800 text-xs text-gray-600 dark:text-gray-400 mb-4 animate-in fade-in slide-in-from-top-2">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+                          <div className="space-y-3">
+                            <div>
+                              <p className="font-bold text-gray-900 dark:text-gray-200 mb-1">Structure</p>
+                              <p><span className="font-mono text-primary font-bold"># Heading 1</span> - Main Title</p>
+                              <p><span className="font-mono text-primary font-bold">## Heading 2</span> - Major Section</p>
+                              <p><span className="font-mono text-primary font-bold">### Heading 3</span> - Sub Section</p>
+                            </div>
+                            <div>
+                              <p className="font-bold text-gray-900 dark:text-gray-200 mb-1">Emphasis</p>
+                              <p><span className="font-mono text-primary font-bold">**Bold**</span> or <span className="font-mono text-primary font-bold">__Bold__</span></p>
+                              <p><span className="font-mono text-primary font-bold">*Italic*</span> or <span className="font-mono text-primary font-bold">_Italic_</span></p>
+                              <p><span className="font-mono text-primary font-bold">~~Strikethrough~~</span></p>
+                            </div>
+                          </div>
+                          <div className="space-y-3">
+                            <div>
+                              <p className="font-bold text-gray-900 dark:text-gray-200 mb-1">Lists & Links</p>
+                              <p><span className="font-mono text-primary font-bold">- List Item</span> (or <span className="font-mono text-primary font-bold">*</span> or <span className="font-mono text-primary font-bold">+</span>)</p>
+                              <p><span className="font-mono text-primary font-bold">1. Numbered Item</span></p>
+                              <p><span className="font-mono text-primary font-bold">[Link Text](URL)</span></p>
+                              <p><span className="font-mono text-primary font-bold">![Alt Text](Img URL)</span></p>
+                            </div>
+                            <div>
+                              <p className="font-bold text-gray-900 dark:text-gray-200 mb-1">Advanced</p>
+                              <p><span className="font-mono text-primary font-bold">{">"} Quote</span> - For callouts</p>
+                              <p><span className="font-mono text-pink-500 font-bold">`inline code`</span> - Single backticks</p>
+                              <p><span className="font-mono text-pink-500 font-bold">```lang</span> - Code blocks</p>
+                            </div>
+                          </div>
                         </div>
-                        <div className="space-y-1">
-                          <p><span className="font-mono text-primary font-bold">[Label](URL)</span> - Create Links</p>
-                          <p><span className="font-mono text-primary font-bold">{">"} Blockquote</span> - Callout boxes</p>
-                          <p><span className="font-mono text-primary font-bold">- List Item</span> - Bulleted list</p>
-                          <p><span className="font-mono text-primary font-bold">1. List Item</span> - Numbered list</p>
-                        </div>
-                        <div className="col-span-2 pt-2 border-t dark:border-gray-800 mt-1">
-                          <p><span className="font-mono text-pink-500 font-bold">`inline code`</span> or <span className="font-mono text-pink-500 font-bold">```code block```</span> for technical snippets</p>
+                        <div className="mt-4 pt-3 border-t dark:border-gray-800 space-y-2">
+                          <p className="italic">💡 <span className="font-bold">Pro Tip:</span> Use multiple headings to structure your content better and keep readers engaged!</p>
+                          <div className="bg-primary/5 dark:bg-primary/10 p-2 rounded text-[11px] leading-relaxed border border-primary/20">
+                            <p className="font-bold text-primary mb-1">Code Block Example:</p>
+                            <p className="font-mono whitespace-pre">{"```java\npublic class Hello {\n  public static void main(String[] args) {\n    System.out.println(\"Hi!\");\n  }\n}\n```"}</p>
+                          </div>
                         </div>
                       </div>
                     )}
