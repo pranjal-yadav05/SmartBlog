@@ -18,7 +18,7 @@ const geistMono = Geist_Mono({
 
 export const metadata = {
   title: "SmartBlog",
-  description: "SmartBlog: Create, share, and generate blog posts effortlessly with AI.",
+  description: "SmartBlog: Create, share, and generate blog posts effortlessly with AI."
 };
 
 export default function RootLayout({ children }) {
