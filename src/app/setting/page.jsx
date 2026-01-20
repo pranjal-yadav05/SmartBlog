@@ -143,12 +143,12 @@ export default function Setting() {
     <div className="flex min-h-screen flex-col">
       <Header />
       <main className="flex-1 flex items-start justify-center px-4 md:px-6 py-8">
-        <div className="w-full max-w-2xl p-6 bg-white rounded-lg shadow-lg">
+        <div className="w-full max-w-2xl p-6 bg-white dark:bg-gray-900 rounded-lg shadow-lg">
           <h1 className="text-3xl font-semibold text-center mb-4">
             Update Your Profile
           </h1>
 
-          <p className="text-sm text-gray-600 text-center mb-4">
+          <p className="text-sm text-gray-600 dark:text-gray-400 text-center mb-4">
             <span className="font-semibold">Password rules:</span> if you
             created your account with{" "}
             <span className="font-semibold">email &amp; password</span>, you{" "}
@@ -169,7 +169,7 @@ export default function Setting() {
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Name Field */}
             <div className="flex flex-col">
-              <label className="text-sm font-medium text-gray-700 mb-1">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Full Name
               </label>
               <Input
@@ -182,7 +182,7 @@ export default function Setting() {
 
             {/* Email Field */}
             <div className="flex flex-col">
-              <label className="text-sm font-medium text-gray-700 mb-1">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Email
               </label>
               <Input
@@ -196,7 +196,7 @@ export default function Setting() {
 
             {/* Current Password Field */}
             <div className="flex flex-col">
-              <label className="text-sm font-medium text-gray-700 mb-1">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Current Password
               </label>
               <Input
@@ -212,7 +212,7 @@ export default function Setting() {
 
             {/* New Password Field */}
             <div className="flex flex-col">
-              <label className="text-sm font-medium text-gray-700 mb-1">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 New Password
               </label>
               <Input
@@ -225,7 +225,7 @@ export default function Setting() {
 
             {/* Profile Image Upload */}
             <div className="flex flex-col">
-              <label className="text-sm font-medium text-gray-700 mb-1">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Profile Image
               </label>
               <input
@@ -236,7 +236,7 @@ export default function Setting() {
               />
               {user.profileImage && (
                 <div className="mt-2 flex flex-col items-center">
-                  <p className="text-sm text-gray-500 mb-2">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">
                     Current profile image:
                   </p>
                   <img

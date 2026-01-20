@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Header } from "@/components/header";
 import BlogCard from "@/components/blog-card";
@@ -10,14 +11,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Loader2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus } from "lucide-react";
+import { Search, Plus, Trash2 } from "lucide-react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogFooter,
   DialogClose,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -32,7 +35,7 @@ import { useToast } from "@/components/ui/toast";
 import Footer from "@/components/footer";
 import LoadingScreen from "@/components/loading-screen";
 
-export default function BlogPage() {
+function BlogContent() {
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
   const [blogPosts, setBlogPosts] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -61,9 +64,19 @@ export default function BlogPage() {
     category: "Web Development",
     authorEmail: "",
     image: null,
+    published: true, // ✅ New field
   });
 
-  const [submitting, setSubmitting] = useState(false);
+  const [isDraftSubmitting, setIsDraftSubmitting] = useState(false);
+  const [isPublishSubmitting, setIsPublishSubmitting] = useState(false);
+  const [isDraftEditMode, setIsDraftEditMode] = useState(false);
+  const [draftIdToUpdate, setDraftIdToUpdate] = useState(null);
+  const [draftToUpdate, setDraftToUpdate] = useState(null);
+  const [userDrafts, setUserDrafts] = useState([]);
+  const [isDraftsManagerOpen, setIsDraftsManagerOpen] = useState(false);
+  const [deletingDraftId, setDeletingDraftId] = useState(null);
+  const [publishingDraftId, setPublishingDraftId] = useState(null);
+  const [deletingPostId, setDeletingPostId] = useState(null);
 
   // Available categories for the dropdown
   const availableCategories = [
@@ -81,7 +94,7 @@ export default function BlogPage() {
   // Add the following to the top of the component, with the other state variables
   const [subscribeEmail, setSubscribeEmail] = useState("");
   const [subscribing, setSubscribing] = useState(false);
-
+  const [showMarkdownGuide, setShowMarkdownGuide] = useState(false);
   useEffect(() => {
     // Set mounted to true when component mounts in browser
     setIsMounted(true);
@@ -109,6 +122,28 @@ export default function BlogPage() {
       setNewPost((prev) => ({ ...prev, authorEmail: email.email }));
     }
   }, [isLoggedIn]);
+
+  const searchParams = useSearchParams();
+  
+  useEffect(() => {
+    const draftId = searchParams.get("editDraft");
+    if (draftId && isLoggedIn) {
+      const fetchAndEdit = async () => {
+        try {
+          const response = await fetch(`${API_URL}/api/posts/drafts/${draftId}`, {
+            headers: { Authorization: `Bearer ${localStorage.getItem("jwt")}` }
+          });
+          if (response.ok) {
+            const draft = await response.json();
+            handleEditDraft(draft);
+          }
+        } catch (err) {
+          console.error("Error auto-loading draft:", err);
+        }
+      };
+      fetchAndEdit();
+    }
+  }, [searchParams, isLoggedIn]);
 
   const fetchBlogData = async () => {
     try {
@@ -158,39 +193,21 @@ export default function BlogPage() {
       setTotalItems(data.totalItems);
       setCurrentPage(data.currentPage);
 
-      // Fetch all posts just for categories - could be optimized in future
-      const allPostsResponse = await fetch(`${API_URL}/api/posts/`);
-      if (allPostsResponse.ok) {
-        const allPosts = await allPostsResponse.json();
-        // Extract categories from posts and count occurrences
-        const categoryMap = {};
-        allPosts.forEach((post) => {
-          if (categoryMap[post.category]) {
-            categoryMap[post.category]++;
-          } else {
-            categoryMap[post.category] = 1;
-          }
-        });
-
-        const extractedCategories = Object.keys(categoryMap).map((name) => ({
-          name,
-          count: categoryMap[name],
-        }));
-
-        setCategories(extractedCategories);
-
-        // Set recent posts (top 4 most recent)
-        const sortedPosts = allPosts
-          .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-          .slice(0, 4)
-          .map((post) => ({
-            id: post.id,
-            title: post.title,
-            date: formatDate(post.createdAt),
-          }));
-
-        setRecentPosts(sortedPosts);
+      // Optimized: Fetch only category counts using the new dedicated endpoint
+      const countsResponse = await fetch(`${API_URL}/api/posts/categories/counts`);
+      if (countsResponse.ok) {
+        const categoryCounts = await countsResponse.json();
+        setCategories(categoryCounts);
       }
+
+      // Fetch recent posts separately or from the current page content
+      // Since current page is sorted by desc, we can use it for recent posts
+      const recent = data.content.slice(0, 4).map((post) => ({
+        id: post.id,
+        title: post.title,
+        date: formatDate(post.createdAt),
+      }));
+      setRecentPosts(recent);
 
       setLoading(false);
     } catch (err) {
@@ -200,9 +217,51 @@ export default function BlogPage() {
     }
   };
 
+  const fetchUserDrafts = async (email) => {
+    try {
+      const response = await fetch(`${API_URL}/api/posts/drafts/user/${email}`, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("jwt")}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUserDrafts(data);
+      }
+    } catch (err) {
+      console.error("Error fetching drafts:", err);
+    }
+  };
+
+  const handleDeleteDraft = async (draftId) => {
+    if (!window.confirm("Are you sure you want to delete this draft?")) return;
+    try {
+      setDeletingDraftId(draftId);
+      const response = await fetch(`${API_URL}/api/posts/drafts/${draftId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${localStorage.getItem("jwt")}` },
+      });
+      if (response.ok) {
+        addToast({ title: "Success", description: "Draft deleted!", variant: "success" });
+        fetchUserDrafts(localStorage.getItem("email")); // Refresh the list with email
+      } else {
+        throw new Error("Failed to delete draft");
+      }
+    } catch (err) {
+      addToast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setDeletingDraftId(null);
+    }
+  };
+
   useEffect(() => {
     fetchBlogData();
-  }, [currentPage, selectedCategory]); // Refetch when page or category changes
+    if (isLoggedIn) {
+      const email = localStorage.getItem("email");
+      if (email) fetchUserDrafts(email);
+    }
+  }, [currentPage, selectedCategory, isLoggedIn]); // Refetch when page, category, or login status changes
 
   // Function to handle page changes
   const handlePageChange = (newPage) => {
@@ -215,6 +274,7 @@ export default function BlogPage() {
     if (!window.confirm("Are you sure you want to delete this post?")) return;
     const token = localStorage.getItem("jwt");
     try {
+      setDeletingPostId(postId);
       const response = await fetch(`${API_URL}/api/posts/${postId}`, {
         method: "DELETE",
         headers: {
@@ -235,6 +295,8 @@ export default function BlogPage() {
     } catch (err) {
       console.error("Error deleting post:", err);
       addToast({ title: "Error", description: "Could not delete post." });
+    } finally {
+      setDeletingPostId(null);
     }
   };
 
@@ -279,8 +341,8 @@ export default function BlogPage() {
   };
 
   // Update post handler
-  const handleUpdatePost = async (e) => {
-    e.preventDefault();
+  const handleUpdatePost = async (e, publishedStatus = true) => {
+    if (e) e.preventDefault();
     if (!isLoggedIn || !postToUpdate) {
       addToast({
         title: "Error",
@@ -288,7 +350,8 @@ export default function BlogPage() {
       });
       return;
     }
-    setSubmitting(true);
+    if (publishedStatus) setIsPublishSubmitting(true);
+    else setIsDraftSubmitting(true);
 
     try {
       const token = localStorage.getItem("jwt");
@@ -302,6 +365,7 @@ export default function BlogPage() {
         formData.append("content", newPost.content);
         formData.append("category", newPost.category);
         formData.append("imageFile", newPost.image); // Backend expects "imageFile"
+        formData.append("published", publishedStatus);
 
         response = await fetch(`${API_URL}/api/posts/${postToUpdate.id}`, {
           method: "PUT",
@@ -317,6 +381,7 @@ export default function BlogPage() {
           title: newPost.title,
           content: newPost.content,
           category: newPost.category,
+          published: publishedStatus,
         };
 
         response = await fetch(`${API_URL}/api/posts/${postToUpdate.id}`, {
@@ -352,6 +417,8 @@ export default function BlogPage() {
       setIsCustomCategory(false);
       setIsUpdateMode(false);
       setPostToUpdate(null);
+      setIsDraftEditMode(false);
+      setDraftIdToUpdate(null);
       setCreateDialogOpen(false);
 
       addToast({
@@ -365,13 +432,31 @@ export default function BlogPage() {
         description: err.message || "Could not update post.",
       });
     } finally {
-      setSubmitting(false);
+      setIsDraftSubmitting(false);
+      setIsPublishSubmitting(false);
     }
   };
 
+  const handleEditDraft = (draft) => {
+    setNewPost({
+      title: draft.title,
+      content: draft.content,
+      category: draft.category,
+      authorEmail: draft.author.email,
+      image: null,
+      published: false,
+    });
+    setIsDraftEditMode(true);
+    setDraftIdToUpdate(draft.id);
+    setDraftToUpdate(draft);
+    setIsUpdateMode(false);
+    setCreateDialogOpen(true);
+    setIsDraftsManagerOpen(false);
+  };
+
   // Create post handler
-  const handleCreatePost = async (e) => {
-    e.preventDefault();
+  const handleCreatePost = async (e, publishedStatus = true, manualDraftId = null) => {
+    if (e) e.preventDefault();
     if (!isLoggedIn) {
       addToast({
         title: "Login Required",
@@ -379,28 +464,66 @@ export default function BlogPage() {
       });
       return;
     }
-    setSubmitting(true);
+    if (publishedStatus) setIsPublishSubmitting(true);
+    else setIsDraftSubmitting(true);
+
+    const activeDraftId = manualDraftId || draftIdToUpdate;
+    const isEditingDraft = manualDraftId ? true : isDraftEditMode;
 
     try {
-      const formData = new FormData();
-      formData.append("title", newPost.title);
-      formData.append("content", newPost.content);
-      formData.append("category", newPost.category);
-      formData.append("authorEmail", newPost.authorEmail);
+      const token = localStorage.getItem("jwt");
+      let response;
 
-      if (newPost.image) {
-        formData.append("image", newPost.image); // ✅ Attach image file
+      if (isEditingDraft && !publishedStatus) {
+        // Simple update of existing draft
+        const formData = new FormData();
+        formData.append("title", newPost.title);
+        formData.append("content", newPost.content);
+        formData.append("category", newPost.category);
+        if (newPost.image) {
+          formData.append("image", newPost.image);
+        }
+
+        response = await fetch(`${API_URL}/api/posts/drafts/${activeDraftId}`, {
+          method: "PUT",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        });
+      } else if (isEditingDraft && publishedStatus) {
+        // Publish existing draft
+        response = await fetch(`${API_URL}/api/posts/drafts/${activeDraftId}/publish`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+      } else {
+        // Normal creation (either new draft or new post)
+        const formData = new FormData();
+        formData.append("title", newPost.title);
+        formData.append("content", newPost.content);
+        formData.append("category", newPost.category);
+        formData.append("authorEmail", newPost.authorEmail);
+        formData.append("published", publishedStatus);
+
+        if (newPost.image) {
+          formData.append("image", newPost.image);
+        }
+
+        response = await fetch(`${API_URL}/api/posts/create`, {
+          method: "POST",
+          body: formData,
+        });
       }
 
-      const response = await fetch(`${API_URL}/api/posts/create`, {
-        method: "POST",
-        body: formData, // ✅ Send as FormData
-      });
+      if (!response.ok) throw new Error("Failed to process post");
 
-      if (!response.ok) throw new Error("Failed to create post");
-
-      const createdPost = await response.json();
+      const result = await response.json();
       fetchBlogData();
+      if (isLoggedIn) fetchUserDrafts(localStorage.getItem("email"));
+      
       setNewPost({
         title: "",
         content: "",
@@ -409,16 +532,23 @@ export default function BlogPage() {
         image: null,
       });
       setIsCustomCategory(false);
+      setIsDraftEditMode(false);
+      setDraftIdToUpdate(null);
+      setDraftToUpdate(null);
       setCreateDialogOpen(false);
+      
       addToast({
-        title: "Post created",
-        description: "Your post has been published!",
+        title: publishedStatus ? "Post published" : "Draft saved",
+        description: publishedStatus 
+          ? "Your post has been published!" 
+          : "Your draft has been saved successfully!",
       });
     } catch (err) {
-      console.error("Error creating post:", err);
-      addToast({ title: "Error", description: "Could not publish post." });
+      console.error("Error processing post:", err);
+      addToast({ title: "Error", description: "Could not process request." });
     } finally {
-      setSubmitting(false);
+      setIsDraftSubmitting(false);
+      setIsPublishSubmitting(false);
     }
   };
 
@@ -678,26 +808,38 @@ export default function BlogPage() {
               <div className="mb-8">
                 <div className="flex justify-between items-center mb-4">
                   <h1 className="text-3xl font-bold tracking-tight">Blog</h1>
-                  {isLoggedIn ? (
-                    <Button
-                      onClick={() => {
-                        setIsUpdateMode(false);
-                        setPostToUpdate(null);
-                        setNewPost({
-                          title: "",
-                          content: "",
-                          category: "Web Development",
-                          authorEmail: loggedInEmail || "",
-                          image: null,
-                        });
-                        setIsCustomCategory(false);
-                        setCreateDialogOpen(true);
-                      }}>
-                      <Plus className="mr-2 h-4 w-4" /> New Post
-                    </Button>
-                  ) : (
-                    <>Login to Create Post</>
-                  )}
+                  <div className="flex gap-2">
+                    {isLoggedIn && (
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsDraftsManagerOpen(true)}>
+                        My Drafts ({userDrafts.length})
+                      </Button>
+                    )}
+                    {isLoggedIn ? (
+                      <Button
+                        onClick={() => {
+                          setIsUpdateMode(false);
+                          setIsDraftEditMode(false);
+                          setDraftIdToUpdate(null);
+                          setPostToUpdate(null);
+                          setNewPost({
+                            title: "",
+                            content: "",
+                            category: "Web Development",
+                            authorEmail: loggedInEmail || "",
+                            image: null,
+                            published: true,
+                          });
+                          setIsCustomCategory(false);
+                          setCreateDialogOpen(true);
+                        }}>
+                        <Plus className="mr-2 h-4 w-4" /> New Post
+                      </Button>
+                    ) : (
+                      <>Login to Create Post</>
+                    )}
+                  </div>
                 </div>
                 <p className="text-gray-500 dark:text-gray-400 mb-6">
                   Explore the latest articles, tutorials, and insights on web
@@ -742,9 +884,10 @@ export default function BlogPage() {
                     <BlogCard
                       key={post.id}
                       post={post}
-                      loggedInEmail={loggedInEmail}
                       onDelete={handleDeletePost}
                       onUpdate={handleUpdateClick}
+                      loggedInEmail={loggedInEmail}
+                      isDeleting={deletingPostId === post.id}
                     />
                   ))}
                 </div>
@@ -893,6 +1036,8 @@ export default function BlogPage() {
                 // Reset form when dialog closes
                 setIsUpdateMode(false);
                 setPostToUpdate(null);
+                setDraftToUpdate(null);
+                setDraftIdToUpdate(null);
                 setNewPost({
                   title: "",
                   content: "",
@@ -906,7 +1051,7 @@ export default function BlogPage() {
             <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>
-                  {isUpdateMode ? "Update Blog Post" : "Create New Blog Post"}
+                  {isUpdateMode ? "Update Blog Post" : isDraftEditMode ? "Update Draft" : "Create New Blog Post"}
                 </DialogTitle>
               </DialogHeader>
               <form
@@ -981,7 +1126,7 @@ export default function BlogPage() {
 
                   <div className="grid gap-2">
                     <Label htmlFor="image">
-                      {isUpdateMode
+                      {(isUpdateMode || isDraftEditMode)
                         ? "Update Image (optional)"
                         : "Upload Image"}
                     </Label>
@@ -993,6 +1138,21 @@ export default function BlogPage() {
                         <img
                           src={postToUpdate.imageUrl}
                           alt="Current post image"
+                          className="w-full h-32 object-cover rounded-md border"
+                        />
+                        <p className="text-xs text-gray-400 mt-1">
+                          Upload a new image to replace the current one
+                        </p>
+                      </div>
+                    )}
+                    {isDraftEditMode && draftToUpdate?.imageUrl && (
+                      <div className="mb-2">
+                        <p className="text-sm text-gray-500 mb-2">
+                          Current draft image:
+                        </p>
+                        <img
+                          src={draftToUpdate.imageUrl}
+                          alt="Current draft image"
                           className="w-full h-32 object-cover rounded-md border"
                         />
                         <p className="text-xs text-gray-400 mt-1">
@@ -1020,14 +1180,44 @@ export default function BlogPage() {
                     )}
                   </div>
 
-                  {/* ✅ Textarea with scrollability */}
+                  {/* ✅ Textarea with scrollability and Markdown Guide */}
                   <div className="grid gap-2">
-                    <Label htmlFor="content">Content</Label>
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="content">Content</Label>
+                      <button 
+                        type="button"
+                        onClick={() => setShowMarkdownGuide(!showMarkdownGuide)}
+                        className="text-xs text-primary hover:underline flex items-center gap-1"
+                      >
+                        {showMarkdownGuide ? "Hide Guide" : "Markdown Guide?"}
+                      </button>
+                    </div>
+
+                    {showMarkdownGuide && (
+                      <div className="bg-gray-50 dark:bg-gray-900/50 p-4 rounded-lg border dark:border-gray-800 text-xs text-gray-600 dark:text-gray-400 grid grid-cols-2 gap-x-6 gap-y-2 mb-2 animate-in fade-in slide-in-from-top-2">
+                        <div className="space-y-1">
+                          <p><span className="font-mono text-primary font-bold"># Heading</span> - Larger Text</p>
+                          <p><span className="font-mono text-primary font-bold">## Heading</span> - Section Title</p>
+                          <p><span className="font-mono text-primary font-bold">**Bold Content**</span> - Emphasis</p>
+                          <p><span className="font-mono text-primary font-bold">*Italic Content*</span> - Subtle Emphasis</p>
+                        </div>
+                        <div className="space-y-1">
+                          <p><span className="font-mono text-primary font-bold">[Label](URL)</span> - Create Links</p>
+                          <p><span className="font-mono text-primary font-bold">{">"} Blockquote</span> - Callout boxes</p>
+                          <p><span className="font-mono text-primary font-bold">- List Item</span> - Bulleted list</p>
+                          <p><span className="font-mono text-primary font-bold">1. List Item</span> - Numbered list</p>
+                        </div>
+                        <div className="col-span-2 pt-2 border-t dark:border-gray-800 mt-1">
+                          <p><span className="font-mono text-pink-500 font-bold">`inline code`</span> or <span className="font-mono text-pink-500 font-bold">```code block```</span> for technical snippets</p>
+                        </div>
+                      </div>
+                    )}
+
                     <Textarea
                       id="content"
                       name="content"
                       placeholder="Write your blog post here or use AI to generate..."
-                      className="h-[200px] max-h-[300px] overflow-y-auto"
+                      className="h-[250px] max-h-[400px] overflow-y-auto"
                       value={newPost.content}
                       onChange={handleInputChange}
                       required
@@ -1035,7 +1225,7 @@ export default function BlogPage() {
                   </div>
                 </div>
 
-                <DialogFooter>
+                <DialogFooter className="flex flex-wrap gap-2 sm:justify-end">
                   <Button
                     type="button"
                     variant="outline"
@@ -1051,16 +1241,35 @@ export default function BlogPage() {
                     )}
                   </Button>
                   <DialogClose asChild>
-                    <Button type="button" variant="outline">
+                    <Button type="button" variant="outline" disabled={isDraftSubmitting || isPublishSubmitting}>
                       Cancel
                     </Button>
                   </DialogClose>
-                  <Button type="submit" disabled={submitting}>
-                    {submitting ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        {isUpdateMode ? "Updating..." : "Publishing..."}
-                      </>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    disabled={isDraftSubmitting || isPublishSubmitting || !newPost.title || !newPost.content}
+                    onClick={() =>
+                      isUpdateMode
+                        ? handleUpdatePost(null, false)
+                        : handleCreatePost(null, false)
+                    }>
+                    {isDraftSubmitting ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      "Save as Draft"
+                    )}
+                  </Button>
+                  <Button
+                    type="button"
+                    disabled={isDraftSubmitting || isPublishSubmitting || !newPost.title || !newPost.content}
+                    onClick={() =>
+                      isUpdateMode
+                        ? handleUpdatePost(null, true)
+                        : handleCreatePost(null, true)
+                    }>
+                    {isPublishSubmitting ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     ) : isUpdateMode ? (
                       "Update Post"
                     ) : (
@@ -1071,9 +1280,101 @@ export default function BlogPage() {
               </form>
             </DialogContent>
           </Dialog>
+
+          {/* Drafts Manager Dialog */}
+          <Dialog open={isDraftsManagerOpen} onOpenChange={setIsDraftsManagerOpen}>
+            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>My Drafts</DialogTitle>
+                <DialogDescription>
+                  Manage your unpublished posts here. You can edit or publish them.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 mt-4">
+                {userDrafts.length > 0 ? (
+                  userDrafts.map((draft) => (
+                    <div
+                      key={draft.id}
+                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                      <div className="flex items-center flex-1 min-w-0 mr-4">
+                        {draft.imageUrl && (
+                          <img
+                            src={draft.imageUrl}
+                            alt=""
+                            className="w-12 h-12 object-cover rounded mr-4 shrink-0 border"
+                          />
+                        )}
+                        <div className="min-w-0">
+                          <h4 className="font-semibold truncate">{draft.title}</h4>
+                          <p className="text-sm text-gray-500 line-clamp-1">
+                            {stripMarkdown(draft.content)}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                          disabled={deletingDraftId === draft.id}
+                          onClick={() => handleDeleteDraft(draft.id)}>
+                          {deletingDraftId === draft.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={publishingDraftId === draft.id || deletingDraftId === draft.id}
+                          onClick={() => handleEditDraft(draft)}>
+                          Edit
+                        </Button>
+                         <Button
+                          size="sm"
+                          disabled={publishingDraftId === draft.id || deletingDraftId === draft.id}
+                          onClick={async () => {
+                            try {
+                              setPublishingDraftId(draft.id);
+                              setDraftIdToUpdate(draft.id);
+                              setIsDraftEditMode(true);
+                              await handleCreatePost(null, true, draft.id);
+                            } finally {
+                              setPublishingDraftId(null);
+                            }
+                          }}>
+                          {publishingDraftId === draft.id ? (
+                            <>
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                              Publishing...
+                            </>
+                          ) : (
+                            "Publish"
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center py-8 text-gray-500">
+                    You have no drafts at the moment.
+                  </p>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </main>
       <Footer />
     </div>
+  );
+}
+
+export default function BlogPage() {
+  return (
+    <Suspense fallback={<LoadingScreen message="Loading blog..." />}>
+      <BlogContent />
+    </Suspense>
   );
 }

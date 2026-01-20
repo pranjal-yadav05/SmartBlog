@@ -11,16 +11,22 @@ import {
 } from "@/components/ui/card";
 import { Header } from "@/components/header";
 import { useState, useEffect } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Loader2 } from "lucide-react";
 import Footer from "@/components/footer";
 import LoadingScreen from "@/components/loading-screen";
+import Image from "next/image";
 
 export default function Profile() {
   const [userData, setUserData] = useState(null);
-  const [userPosts, setUserPosts] = useState([]); // Store posts separately
+  const [userPosts, setUserPosts] = useState([]);
+  const [userDrafts, setUserDrafts] = useState([]);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isPostsLoading, setIsPostsLoading] = useState(false);
+  const [isDraftsLoading, setIsDraftsLoading] = useState(false);
+  const [publishingDraftId, setPublishingDraftId] = useState(null);
+  const [deletingDraftId, setDeletingDraftId] = useState(null);
   const [error, setError] = useState(null);
   // Pagination state
   const [currentPage, setCurrentPage] = useState(0);
@@ -44,6 +50,7 @@ export default function Profile() {
     const token = localStorage.getItem("jwt");
     if (userData && userData.email && token) {
       fetchUserPosts(userData.email);
+      fetchUserDrafts(userData.email);
     }
   }, [currentPage, userData]);
 
@@ -130,6 +137,78 @@ export default function Profile() {
     }
   };
 
+  const fetchUserDrafts = async (email) => {
+    try {
+      setIsDraftsLoading(true);
+      const response = await fetch(`${API_URL}/api/posts/drafts/user/${email}`, {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("jwt")}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to fetch user drafts");
+      }
+
+      const data = await response.json();
+      setUserDrafts(data);
+    } catch (error) {
+      console.error("Error fetching user drafts:", error);
+    } finally {
+      setIsDraftsLoading(false);
+    }
+  };
+
+  const handlePublishDraft = async (draftId) => {
+    if (!window.confirm("Are you sure you want to publish this draft?")) return;
+    try {
+      setPublishingDraftId(draftId);
+      const response = await fetch(`${API_URL}/api/posts/drafts/${draftId}/publish`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("jwt")}`,
+        },
+      });
+
+      if (!response.ok) throw new Error("Failed to publish draft");
+
+      // We need to use a toast if available, or alert
+      alert("Draft published successfully!");
+      fetchUserPosts(userData.email);
+      fetchUserDrafts(userData.email);
+    } catch (error) {
+      console.error("Error publishing draft:", error);
+      alert("Could not publish draft.");
+    } finally {
+      setPublishingDraftId(null);
+    }
+  };
+
+  const handleDeleteDraft = async (draftId) => {
+    if (!window.confirm("Are you sure you want to delete this draft?")) return;
+    try {
+      setDeletingDraftId(draftId);
+      const response = await fetch(`${API_URL}/api/posts/drafts/${draftId}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("jwt")}`,
+        },
+      });
+
+      if (!response.ok) throw new Error("Failed to delete draft");
+
+      alert("Draft deleted successfully!");
+      fetchUserDrafts(userData.email);
+    } catch (error) {
+      console.error("Error deleting draft:", error);
+      alert("Could not delete draft.");
+    } finally {
+      setDeletingDraftId(null);
+    }
+  };
+
   // Handle page changes
   const handlePageChange = (newPage) => {
     if (newPage >= 0 && newPage < totalPages) {
@@ -196,8 +275,86 @@ export default function Profile() {
 
             {/* User's Posts */}
             <div className="mt-8">
+              {/* User's Drafts Section */}
+              {userDrafts.length > 0 && (
+                <div className="mb-12">
+                  <h2 className="text-3xl font-bold tracking-tighter md:text-4xl mb-5 text-center">
+                    Your Drafts
+                  </h2>
+                  <div className="flex flex-wrap gap-4 justify-center">
+                    {userDrafts.map((draft) => (
+                      <Card key={draft.id} className="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1rem)] max-w-sm overflow-hidden flex flex-col group relative min-h-[300px] border-none">
+                        {/* Background Image */}
+                        <Image
+                          src={draft.imageUrl || "/placeholder.svg"}
+                          alt={draft.title}
+                          fill
+                          className="object-cover transition-transform duration-700 group-hover:scale-110"
+                        />
+                        {/* Heavy Overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/70 to-black/30 z-10" />
+                        
+                        {/* Content Layer */}
+                        <div className="relative z-20 flex flex-col h-full text-white">
+                          <CardHeader className="p-5">
+                            <div className="flex justify-between items-start gap-2">
+                              <CardTitle className="line-clamp-2 text-xl font-bold text-white leading-tight">
+                                {draft.title}
+                              </CardTitle>
+                              <Badge variant="outline" className="text-orange-400 border-orange-400 bg-orange-400/10 backdrop-blur-md shrink-0">
+                                Draft
+                              </Badge>
+                            </div>
+                          </CardHeader>
+                          
+                          <CardContent className="p-5 pt-0 flex-1">
+                            <p className="text-sm text-gray-200 line-clamp-3 leading-relaxed">
+                              {draft.content?.replace(/^#+\s*/gm, "") || "No content"}
+                            </p>
+                          </CardContent>
+                          
+                          <CardFooter className="p-5 flex gap-2">
+                            <Link href={`/blog?editDraft=${draft.id}`}>
+                              <Button variant="secondary" size="sm" className="bg-white/10 hover:bg-white/20 border-white/20 text-white backdrop-blur-md" disabled={publishingDraftId === draft.id || deletingDraftId === draft.id}>
+                                Edit
+                              </Button>
+                            </Link>
+                            <Button 
+                              variant="secondary" 
+                              size="sm" 
+                              className="bg-white/20 hover:bg-white/30 border-white/30 text-white backdrop-blur-md"
+                              onClick={() => handlePublishDraft(draft.id)}
+                              disabled={publishingDraftId === draft.id || deletingDraftId === draft.id}
+                            >
+                              {publishingDraftId === draft.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                "Publish"
+                              )}
+                            </Button>
+                            <Button 
+                              variant="destructive" 
+                              size="sm" 
+                              className="bg-red-500/80 hover:bg-red-500 text-white backdrop-blur-md border-none"
+                              onClick={() => handleDeleteDraft(draft.id)}
+                              disabled={publishingDraftId === draft.id || deletingDraftId === draft.id}
+                            >
+                              {deletingDraftId === draft.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                "Delete"
+                              )}
+                            </Button>
+                          </CardFooter>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <h2 className="text-3xl font-bold tracking-tighter md:text-4xl mb-5 text-center">
-                Your Posts
+                Published Posts
               </h2>
               {isPostsLoading ? (
                 <div className="flex justify-center py-8">
@@ -208,22 +365,46 @@ export default function Profile() {
                 </div>
               ) : userPosts.length > 0 ? (
                 <>
-                  <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="flex flex-wrap gap-4 justify-center">
                     {userPosts.map((post) => (
-                      <Card key={post.id}>
-                        <CardHeader>
-                          <CardTitle>{post.title}</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-3">
-                            {post.content.replace(/^#+\s*/gm, "")}
-                          </p>
-                        </CardContent>
-                        <CardFooter>
-                          <Link href={`/blog/${post.id}`}>
-                            <Button variant="outline">Read More</Button>
-                          </Link>
-                        </CardFooter>
+                      <Card key={post.id} className="w-full sm:w-[calc(50%-1rem)] lg:w-[calc(33.333%-1rem)] max-w-sm overflow-hidden flex flex-col group relative min-h-[300px] border-none">
+                        {/* Background Image */}
+                        <Image
+                          src={post.imageUrl || "/placeholder.svg"}
+                          alt={post.title}
+                          fill
+                          className="object-cover transition-transform duration-700 group-hover:scale-110"
+                        />
+                        {/* Heavy Overlay */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/70 to-black/30 z-10" />
+                        
+                        {/* Content Layer */}
+                        <div className="relative z-20 flex flex-col h-full text-white">
+                          <CardHeader className="p-5">
+                            <div className="flex justify-between items-start gap-2">
+                              <CardTitle className="line-clamp-2 text-xl font-bold text-white leading-tight">
+                                {post.title}
+                              </CardTitle>
+                              <Badge variant="secondary" className="backdrop-blur-md bg-white/20 text-white border-white/20 shrink-0">
+                                {post.category}
+                              </Badge>
+                            </div>
+                          </CardHeader>
+                          
+                          <CardContent className="p-5 pt-0 flex-1">
+                            <p className="text-sm text-gray-200 line-clamp-3 leading-relaxed">
+                              {post.content.replace(/^#+\s*/gm, "")}
+                            </p>
+                          </CardContent>
+                          
+                          <CardFooter className="p-5 mt-auto">
+                            <Link href={`/blog/${post.id}`} className="w-full">
+                              <Button variant="secondary" className="w-full bg-white/10 hover:bg-white/20 border-white/20 text-white backdrop-blur-md">
+                                Read More
+                              </Button>
+                            </Link>
+                          </CardFooter>
+                        </div>
                       </Card>
                     ))}
                   </div>

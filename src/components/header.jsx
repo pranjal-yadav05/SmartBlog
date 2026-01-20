@@ -13,6 +13,7 @@ import {
 import { Menu, Search, X, UserSearch } from "lucide-react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { ThemeToggle } from "./theme-toggle";
 
 export function Header() {
   const router = useRouter();
@@ -420,6 +421,10 @@ export function Header() {
                     </div>
                     <div className="font-medium">{user.name}</div>
                   </div>
+                  <div className="flex items-center justify-between py-2 border-b">
+                    <span className="text-sm font-medium">Appearance</span>
+                    <ThemeToggle />
+                  </div>
                   <Button
                     onClick={() => router.push("/profile")}
                     variant="outline"
@@ -511,7 +516,7 @@ export function Header() {
                   placeholder="Search users..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full min-w-[240px] pl-9 pr-10 h-10 border-gray-300 focus:border-primary focus:ring-primary"
+                  className="w-full min-w-[240px] pl-9 pr-10 h-10 border-gray-300 dark:border-gray-700 dark:bg-gray-800 focus:border-primary focus:ring-primary"
                   autoFocus
                   aria-label="Search users"
                 />
@@ -569,6 +574,7 @@ export function Header() {
 
           {/* Only show auth buttons on desktop */}
           <div className="hidden md:flex items-center gap-2 mr-2">
+            <ThemeToggle />
             {user ? (
               <div className="flex items-center gap-2">
                 <Button
@@ -587,8 +593,8 @@ export function Header() {
                       }}
                     />
                   ) : (
-                    <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center">
-                      <span className="text-gray-500 text-xs font-semibold">
+                    <div className="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-800 flex items-center justify-center">
+                      <span className="text-gray-500 dark:text-gray-400 text-xs font-semibold">
                         {user.name.charAt(0).toUpperCase()}
                       </span>
                     </div>
@@ -617,14 +623,14 @@ export function Header() {
 
       {/* Mobile search overlay */}
       {showMobileSearch && (
-        <div className="md:hidden px-4 py-3 border-t border-gray-200 bg-background">
+        <div className="md:hidden px-4 py-3 border-t border-gray-200 dark:border-gray-800 bg-background">
           <div className="relative">
             <Input
               type="text"
               placeholder="Search users..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-10 h-10 border-gray-300 focus:border-primary focus:ring-primary"
+              className="w-full pl-9 pr-10 h-10 border-gray-300 dark:border-gray-700 dark:bg-gray-800 focus:border-primary focus:ring-primary"
               autoFocus
               aria-label="Search users"
             />
@@ -682,8 +688,8 @@ export function Header() {
 
     // Add different classes for mobile vs desktop
     const containerClasses = showMobileSearch
-      ? "mt-2 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 w-full z-40"
-      : "mt-2 rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5 absolute top-full left-0 right-0 z-50";
+      ? "mt-2 rounded-md bg-white dark:bg-gray-900 shadow-lg ring-1 ring-black ring-opacity-5 dark:ring-gray-800 w-full z-40"
+      : "mt-2 rounded-md bg-white dark:bg-gray-900 shadow-lg ring-1 ring-black ring-opacity-5 dark:ring-gray-800 absolute top-full left-0 right-0 z-50";
 
     return (
       <div className={containerClasses}>
@@ -710,8 +716,8 @@ export function Header() {
           </div>
         ) : filteredUsers.length > 0 ? (
           <div className="max-h-72 overflow-y-auto">
-            <div className="py-1 border-b border-gray-100 px-3">
-              <p className="text-xs text-gray-500">
+            <div className="py-1 border-b border-gray-100 dark:border-gray-800 px-3">
+              <p className="text-xs text-gray-500 dark:text-gray-400">
                 Search results for "{searchQuery}"
               </p>
             </div>
@@ -720,12 +726,12 @@ export function Header() {
                 <li key={user.id || `user-${user.email}`}>
                   <button
                     onClick={() => handleUserSelect(user)}
-                    className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center">
+                    className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-800 flex items-center">
                     <div className="flex-shrink-0 mr-3">
                       <img
                         src={getProfileImageForUser(user)}
                         alt={user.name || "User"}
-                        className="h-10 w-10 rounded-full object-cover border border-gray-200"
+                        className="h-10 w-10 rounded-full object-cover border border-gray-200 dark:border-gray-700"
                         onError={(e) => {
                           e.target.onerror = null;
                           e.target.src = "/placeholder.png";
@@ -733,13 +739,13 @@ export function Header() {
                       />
                     </div>
                     <div>
-                      <div className="font-medium text-sm">
+                      <div className="font-medium text-sm text-gray-900 dark:text-gray-100">
                         {user.name || "Unknown User"}
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
                         {user.email || "No email available"}
                       </div>
-                      <div className="text-xs text-gray-400 mt-1">
+                      <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                         Click to view profile
                       </div>
                     </div>

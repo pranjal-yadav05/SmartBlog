@@ -2,9 +2,9 @@
 
 const SmartBlogLogo = () => {
   return (
-    <div className="inline-block w-full">
+    <div className="inline-block w-full text-black dark:text-white">
       <svg viewBox="0 0 400 80" className="w-full h-auto">
-        <text x="10" y="55" fontSize="50" fontFamily="Rock Salt" stroke="black" strokeWidth="2" fill="none">
+        <text x="10" y="55" fontSize="50" fontFamily="Rock Salt" stroke="currentColor" strokeWidth="2" fill="none">
           SmartBlog
         </text>
       </svg>

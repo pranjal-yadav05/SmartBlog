@@ -140,7 +140,7 @@ export default function Home() {
 
         {/* Conditionally render this section based on the login status */}
         {isLoggedIn ? (
-          <section className="w-full py-12 md:py-24 lg:py-32 bg-white dark:bg-gray-950">
+          <section className="w-full py-12 md:py-24 lg:py-32 bg-background dark:bg-gray-950">
             <div className="w-full max-w-7xl mx-auto px-4 md:px-6">
               <div className="mx-auto grid max-w-5xl items-center gap-6 py-12 lg:grid-cols-2 lg:gap-12">
                 <div className="space-y-4">
@@ -190,7 +190,7 @@ export default function Home() {
             </div>
           </section>
         ) : (
-          <section className="w-full py-12 md:py-24 lg:py-32 bg-white dark:bg-gray-950">
+          <section className="w-full py-12 md:py-24 lg:py-32 bg-background dark:bg-gray-950">
             <div className="w-full max-w-7xl mx-auto px-4 md:px-6">
               <div className="mx-auto grid max-w-5xl items-center gap-6 py-12 lg:grid-cols-2 lg:gap-12">
                 <div className="space-y-4">
