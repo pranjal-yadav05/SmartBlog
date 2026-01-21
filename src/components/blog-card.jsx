@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
-import { Trash2, Pencil, Loader2, User, Clock } from "lucide-react";
+import { Trash2, Pencil, Loader2, User, Clock, Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 const BlogCard = ({ post, onDelete, onUpdate, loggedInEmail, isDeleting }) => {
@@ -62,6 +62,14 @@ const BlogCard = ({ post, onDelete, onUpdate, loggedInEmail, isDeleting }) => {
           <div className="flex items-center text-xs font-medium text-gray-500 dark:text-gray-400">
             <Clock className="h-3.5 w-3.5 mr-1.5 opacity-70" />
             {post.readTime}
+          </div>
+          <div className="flex items-center text-xs font-medium text-gray-500 dark:text-gray-400">
+            <Eye className="h-3.5 w-3.5 mr-1.5 opacity-70" />
+            {post.views || 0}
+          </div>
+          <div className="flex items-center text-xs font-medium text-gray-500 dark:text-gray-400">
+            <span className="mr-1.5 text-sm leading-none">👏</span>
+            {post.claps || 0}
           </div>
         </div>
 

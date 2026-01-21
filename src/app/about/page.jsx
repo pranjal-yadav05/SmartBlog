@@ -36,8 +36,8 @@ export default function About() {
                 and bring high-quality content to readers around the world.
               </p>
               <p className="text-gray-500 dark:text-gray-400">
-                My goal with SmartBlog is to combine the power of AI with modern web technologies to enhance the blogging experience. 
-                Whether you're a writer looking for a creative space or a reader exploring new ideas, SmartBlog is designed with you in mind.
+                My goal with SmartBlog is to combine the warmth of human storytelling with the precision of AI-assisted editing to enhance your writing. 
+                Whether you're looking for a creative spark or a final polish, SmartBlog is designed to help your voice shine.
               </p>
             </div>
             <Card>
@@ -48,7 +48,7 @@ export default function About() {
               <CardContent className="space-y-4">
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-primary"></div>
-                  <p>Empowering writers with AI-driven content suggestions</p>
+                  <p>Smoothing your workflow with AI-powered editing suggestions</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-primary"></div>

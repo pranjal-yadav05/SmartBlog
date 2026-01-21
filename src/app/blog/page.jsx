@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useState, Suspense, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Header } from "@/components/header";
@@ -9,9 +9,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Loader2 } from "lucide-react";
+import { Loader2, Search, Plus, Trash2, FileText, Upload, Sparkles, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { Search, Plus, Trash2 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import {
   Dialog,
   DialogContent,
@@ -49,8 +50,17 @@ function BlogContent() {
   const [postToUpdate, setPostToUpdate] = useState(null);
   const { addToast } = useToast();
   const [generating, setGenerating] = useState(false);
+  const [aiSuggestions, setAiSuggestions] = useState("");
+  const [showAiSuggestions, setShowAiSuggestions] = useState(false);
+  const [aiError, setAiError] = useState("");
   const [loggedInEmail, setLoggedInEmail] = useState(null);
   const [isCustomCategory, setIsCustomCategory] = useState(false);
+  const [categorySearchQuery, setCategorySearchQuery] = useState("");
+  const [showCategorySuggestions, setShowCategorySuggestions] = useState(false);
+  const [categoryPage, setCategoryPage] = useState(0);
+  const [totalCategoryPages, setTotalCategoryPages] = useState(0);
+  const [loadingMoreCategories, setLoadingMoreCategories] = useState(false);
+  const markdownInputRef = useRef(null);
   // Pagination state
   const [currentPage, setCurrentPage] = useState(0);
   const [totalPages, setTotalPages] = useState(0);
@@ -136,9 +146,21 @@ function BlogContent() {
           if (response.ok) {
             const draft = await response.json();
             handleEditDraft(draft);
+          } else {
+            console.error("Failed to fetch draft:", response.status);
+            addToast({
+              title: "Load Failed",
+              description: "Could not find the requested draft.",
+              variant: "destructive",
+            });
           }
         } catch (err) {
           console.error("Error auto-loading draft:", err);
+          addToast({
+            title: "Error",
+            description: "An error occurred while loading your draft.",
+            variant: "destructive",
+          });
         }
       };
       fetchAndEdit();
@@ -185,6 +207,8 @@ function BlogContent() {
         }, // ✅ Fix: Access `name` instead of whole object
         category: post.category,
         imageUrl: post.imageUrl,
+        views: post.views,
+        claps: post.claps,
         readTime: getReadTime(post.content),
       }));
 
@@ -193,12 +217,8 @@ function BlogContent() {
       setTotalItems(data.totalItems);
       setCurrentPage(data.currentPage);
 
-      // Optimized: Fetch only category counts using the new dedicated endpoint
-      const countsResponse = await fetch(`${API_URL}/api/posts/categories/counts`);
-      if (countsResponse.ok) {
-        const categoryCounts = await countsResponse.json();
-        setCategories(categoryCounts);
-      }
+      // Fetch categories separately to handle pagination independently
+      fetchCategories(0, false);
 
       // Fetch recent posts separately or from the current page content
       // Since current page is sorted by desc, we can use it for recent posts
@@ -214,6 +234,33 @@ function BlogContent() {
       console.error("Error fetching blog data:", err);
       setError(err.message);
       setLoading(false);
+    }
+  };
+
+  const fetchCategories = async (page = 0, append = false) => {
+    try {
+      if (append) setLoadingMoreCategories(true);
+      
+      const countsResponse = await fetch(
+        `${API_URL}/api/posts/categories/counts?page=${page}&size=10${
+          categorySearchQuery ? `&search=${encodeURIComponent(categorySearchQuery)}` : ""
+        }`
+      );
+      
+      if (countsResponse.ok) {
+        const data = await countsResponse.json();
+        if (append) {
+          setCategories((prev) => [...prev, ...data.categories]);
+        } else {
+          setCategories(data.categories);
+        }
+        setCategoryPage(data.currentPage);
+        setTotalCategoryPages(data.totalPages);
+      }
+    } catch (err) {
+      console.error("Error fetching categories:", err);
+    } finally {
+      if (append) setLoadingMoreCategories(false);
     }
   };
 
@@ -261,7 +308,11 @@ function BlogContent() {
       const email = localStorage.getItem("email");
       if (email) fetchUserDrafts(email);
     }
-  }, [currentPage, selectedCategory, isLoggedIn]); // Refetch when page, category, or login status changes
+  }, [currentPage, selectedCategory, isLoggedIn]); // Removed categorySearchQuery from here to avoid double fetch
+
+  useEffect(() => {
+    fetchCategories(0, false);
+  }, [categorySearchQuery]);
 
   // Function to handle page changes
   const handlePageChange = (newPage) => {
@@ -439,10 +490,10 @@ function BlogContent() {
 
   const handleEditDraft = (draft) => {
     setNewPost({
-      title: draft.title,
-      content: draft.content,
-      category: draft.category,
-      authorEmail: draft.author.email,
+      title: draft.title || "",
+      content: draft.content || "",
+      category: draft.category || "Web Development",
+      authorEmail: draft.author?.email || loggedInEmail || "",
       image: null,
       published: false,
     });
@@ -552,51 +603,52 @@ function BlogContent() {
     }
   };
 
-  const handleGeneratePost = async () => {
-    if (!newPost.title.trim()) {
-      alert("Please enter a title for AI generation.");
+  const handleGetAISuggestions = async () => {
+    setAiError("");
+    
+    if (!newPost.title.trim() || !newPost.content.trim()) {
+      setShowAiSuggestions(true);
+      setAiError("Please provide both a title and content to get helpful suggestions.");
       return;
     }
 
     setGenerating(true);
+    setAiSuggestions("");
+    setShowAiSuggestions(true);
 
     try {
-      const response = await fetch(`${API_URL}/api/posts/generate`, {
+      const response = await fetch(`${API_URL}/api/posts/suggestions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          prompt: newPost.title,
-          authorEmail: newPost.authorEmail,
+          title: newPost.title,
+          content: newPost.content,
         }),
       });
 
-      // ✅ Parse response safely
-      const generatedPost = await response.json();
+      const data = await response.json();
 
-      // ✅ Check if API responded with an error
       if (!response.ok) {
-        console.error("Error generating post:", generatedPost);
-        alert("Failed to generate post. Try again.");
-        return;
+        throw new Error(data.message || "Failed to get suggestions");
       }
 
-      // ✅ Only update state if AI returned content
-      if (generatedPost.content) {
-        setNewPost((prev) => ({
-          ...prev,
-          content: generatedPost.content,
-        }));
-
+      if (data.suggestions) {
+        setAiSuggestions(data.suggestions);
         addToast({
-          title: "AI-generated content added!",
-          description: "Your post has been generated.",
+          title: "Suggestions ready!",
+          description: "AI has analyzed your post.",
+          variant: "success",
         });
       } else {
-        alert("AI failed to generate meaningful content.");
+        setAiSuggestions("AI failed to provide suggestions.");
       }
     } catch (err) {
-      console.error("Unexpected error generating post:", err);
-      alert("Something went wrong. Please try again.");
+      console.error("Error getting suggestions:", err);
+      addToast({
+        title: "Error",
+        description: err.message || "Failed to get suggestions. Please try again.",
+        variant: "destructive",
+      });
     } finally {
       setGenerating(false);
     }
@@ -769,6 +821,53 @@ function BlogContent() {
     }
   };
 
+  const handleMarkdownImport = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.name.endsWith(".md")) {
+      addToast({
+        title: "Invalid File",
+        description: "Please select a .md file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      let content = event.target.result;
+      
+      if (content) {
+        // Normalize line endings
+        content = content.replace(/\r\n/g, "\n");
+        
+        // Unescape common markdown characters that might be escaped by some exporters
+        // This handles cases like \# Sample, \*Published\*, \[Link\], etc.
+        content = content.replace(/\\([#*_\-!\[\]()>])/g, "$1");
+        
+        // Replace HTML entities like &nbsp; which often appear in bad exports
+        content = content.replace(/&nbsp;/g, " ");
+        
+        // Consolidate excessive newlines (3+ -> 2) to fix doubling issues
+        content = content.replace(/\n{3,}/g, "\n\n");
+        
+        // Optional: Remove trailing extra newlines
+        content = content.trimEnd();
+      }
+      
+      setNewPost((prev) => ({ ...prev, content }));
+      addToast({
+        title: "Success",
+        description: "Markdown content imported and normalized!",
+        variant: "success",
+      });
+    };
+    reader.readAsText(file);
+    // Reset input so the same file can be selected again
+    e.target.value = "";
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen flex-col">
@@ -862,7 +961,7 @@ function BlogContent() {
                     onClick={() => handleCategorySelect("All")}>
                     All
                   </Badge>
-                  {categories.map((category) => (
+                  {categories.slice(0, 10).map((category) => (
                     <Badge
                       key={category.name}
                       variant={
@@ -942,11 +1041,28 @@ function BlogContent() {
             {/* Sidebar */}
             <div className="w-full md:w-80 space-y-6">
               <Card>
-                <CardHeader>
-                  <CardTitle>Categories</CardTitle>
+                <CardHeader className="pb-3">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-xl">Categories</CardTitle>
+                    {categories.length > 5 && (
+                      <Badge variant="secondary" className="font-normal">
+                        {categories.length}
+                      </Badge>
+                    )}
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
+                  <div className="relative mb-4">
+                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-gray-400" />
+                    <Input
+                      type="search"
+                      placeholder="Search categories..."
+                      className="h-9 pl-8 text-sm bg-gray-50/50 dark:bg-gray-900/50"
+                      value={categorySearchQuery}
+                      onChange={(e) => setCategorySearchQuery(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                     {categories.map((category, index) => (
                       <div key={index}>
                         <Link
@@ -955,15 +1071,39 @@ function BlogContent() {
                             e.preventDefault();
                             handleCategorySelect(category.name);
                           }}
-                          className="flex justify-between items-center py-1 hover:text-primary">
-                          <span>{category.name}</span>
-                          <Badge variant="secondary">{category.count}</Badge>
+                          className={`flex justify-between items-center px-2 py-2 rounded-md transition-colors ${
+                            selectedCategory === category.name 
+                              ? "bg-primary/10 text-primary font-medium" 
+                              : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                          }`}>
+                          <span className="truncate mr-2">{category.name}</span>
+                          <Badge variant={selectedCategory === category.name ? "default" : "secondary"} className="h-5 min-w-[20px] px-1 justify-center shrink-0">
+                            {category.count}
+                          </Badge>
                         </Link>
-                        {index < categories.length - 1 && (
-                          <Separator className="my-1" />
-                        )}
                       </div>
                     ))}
+                    
+                    {categories.length === 0 && (
+                      <p className="text-center py-4 text-sm text-gray-500">
+                        No categories found.
+                      </p>
+                    )}
+
+                    {categoryPage < totalCategoryPages - 1 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="w-full mt-2 text-xs text-primary"
+                        onClick={() => fetchCategories(categoryPage + 1, true)}
+                        disabled={loadingMoreCategories}
+                      >
+                        {loadingMoreCategories ? (
+                          <Loader2 className="h-3 w-3 animate-spin mr-2" />
+                        ) : null}
+                        Load More Categories
+                      </Button>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -1080,48 +1220,48 @@ function BlogContent() {
                     />
                   </div>
 
-                  <div className="grid gap-2">
+                  <div className="grid gap-2 relative">
                     <Label htmlFor="category">Category</Label>
-
-                    {/* Dropdown for categories */}
-                    <Select
-                      value={isCustomCategory ? "custom" : newPost.category} // Ensure correct value handling
-                      onValueChange={(value) => {
-                        if (value === "custom") {
-                          setIsCustomCategory(true); // Show input field
-                          setNewPost((prev) => ({ ...prev, category: "" })); // Reset category
-                        } else {
-                          setIsCustomCategory(false);
-                          setNewPost((prev) => ({ ...prev, category: value }));
-                        }
-                      }}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {availableCategories.map((category) => (
-                          <SelectItem key={category} value={category}>
-                            {category}
-                          </SelectItem>
-                        ))}
-                        <SelectItem value="custom">Write Your Own</SelectItem>
-                      </SelectContent>
-                    </Select>
-
-                    {/* Input field for custom category */}
-                    {isCustomCategory && (
+                    <div className="relative">
                       <Input
-                        type="text"
-                        placeholder="Enter your category"
+                        id="category"
+                        name="category"
+                        placeholder="Type to search or create category..."
                         value={newPost.category}
-                        onChange={(e) =>
-                          setNewPost((prev) => ({
-                            ...prev,
-                            category: e.target.value,
-                          }))
-                        }
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setNewPost(prev => ({ ...prev, category: val }));
+                          setShowCategorySuggestions(true);
+                        }}
+                        onFocus={() => setShowCategorySuggestions(true)}
+                        onBlur={() => {
+                          // Small delay to allow clicking suggestions
+                          setTimeout(() => setShowCategorySuggestions(false), 200);
+                        }}
+                        autoComplete="off"
                       />
-                    )}
+                      {showCategorySuggestions && availableCategories.concat(categories.map(c => c.name)).filter((name, index, self) => 
+                        self.indexOf(name) === index && name.toLowerCase().includes(newPost.category.toLowerCase())
+                      ).length > 0 && (
+                        <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-900 border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                          {availableCategories.concat(categories.map(c => c.name))
+                            .filter((name, index, self) => self.indexOf(name) === index && name.toLowerCase().includes(newPost.category.toLowerCase()))
+                            .map((cat, i) => (
+                              <div
+                                key={i}
+                                className="px-3 py-2 text-sm cursor-pointer hover:bg-primary/10 hover:text-primary transition-colors"
+                                onMouseDown={() => {
+                                  setNewPost(prev => ({ ...prev, category: cat }));
+                                  setShowCategorySuggestions(false);
+                                }}
+                              >
+                                {cat}
+                              </div>
+                            ))
+                          }
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid gap-2">
@@ -1184,13 +1324,29 @@ function BlogContent() {
                   <div className="grid gap-2">
                     <div className="flex items-center justify-between">
                       <Label htmlFor="content">Content</Label>
-                      <button 
-                        type="button"
-                        onClick={() => setShowMarkdownGuide(!showMarkdownGuide)}
-                        className="text-xs text-primary hover:underline flex items-center gap-1"
-                      >
-                        {showMarkdownGuide ? "Hide Guide" : "Markdown Guide?"}
-                      </button>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="file"
+                          accept=".md"
+                          ref={markdownInputRef}
+                          className="hidden"
+                          onChange={handleMarkdownImport}
+                        />
+                        <button 
+                          type="button"
+                          onClick={() => markdownInputRef.current?.click()}
+                          className="text-xs text-primary hover:underline flex items-center gap-1"
+                        >
+                          <Upload className="h-3 w-3" /> Import Markdown
+                        </button>
+                        <button 
+                          type="button"
+                          onClick={() => setShowMarkdownGuide(!showMarkdownGuide)}
+                          className="text-xs text-primary hover:underline flex items-center gap-1"
+                        >
+                          {showMarkdownGuide ? "Hide Guide" : "Markdown Guide?"}
+                        </button>
+                      </div>
                     </div>
 
                     {showMarkdownGuide && (
@@ -1239,12 +1395,51 @@ function BlogContent() {
                     <Textarea
                       id="content"
                       name="content"
-                      placeholder="Write your blog post here or use AI to generate..."
+                      placeholder="Write your blog post here and use AI for suggestions..."
                       className="h-[250px] max-h-[400px] overflow-y-auto"
                       value={newPost.content}
                       onChange={handleInputChange}
                       required
                     />
+
+                    {/* AI Suggestions Display */}
+                    {showAiSuggestions && (
+                      <div className="mt-4 p-4 rounded-xl border border-blue-100 dark:border-blue-900/30 bg-blue-50/50 dark:bg-blue-900/10 animate-in fade-in slide-in-from-top-2">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-sm font-bold flex items-center gap-2 text-blue-700 dark:text-blue-400">
+                            <Sparkles className="h-4 w-4" /> AI Suggestions
+                          </h4>
+                          <button 
+                            onClick={() => setShowAiSuggestions(false)}
+                            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        </div>
+                        
+                        {generating ? (
+                          <div className="flex items-center justify-center py-8">
+                            <Loader2 className="h-6 w-6 animate-spin text-blue-500 mr-3" />
+                            <p className="text-sm text-blue-600 animate-pulse">Analyzing your content...</p>
+                          </div>
+                        ) : aiError ? (
+                          <div className="flex items-start gap-2 text-red-500 dark:text-red-400 py-2">
+                             <div className="mt-0.5">•</div>
+                             <p className="text-sm leading-relaxed">{aiError}</p>
+                          </div>
+                        ) : (
+                          <div className="prose prose-sm dark:prose-invert max-w-none">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                              {aiSuggestions}
+                            </ReactMarkdown>
+                          </div>
+                        )}
+                        
+                        <p className="mt-4 text-[10px] text-blue-500/70 italic text-right italic">
+                           Suggested by SmartBlog
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1252,15 +1447,19 @@ function BlogContent() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={handleGeneratePost}
+                    onClick={handleGetAISuggestions}
+                    className="border-blue-200 hover:bg-blue-50 dark:border-blue-800 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400"
                     disabled={generating}>
                     {generating ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Generating...
+                        Analyzing...
                       </>
                     ) : (
-                      "Generate with AI"
+                      <>
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        Get AI Suggestions
+                      </>
                     )}
                   </Button>
                   <DialogClose asChild>
