@@ -72,7 +72,6 @@ function BlogContent() {
     title: "",
     content: "",
     category: "Web Development",
-    authorEmail: "",
     image: null,
     published: true, // ✅ New field
   });
@@ -129,7 +128,6 @@ function BlogContent() {
       const token = localStorage.getItem("jwt");
       const email = decodeJWT(token);
       setLoggedInEmail(email.email);
-      setNewPost((prev) => ({ ...prev, authorEmail: email.email }));
     }
   }, [isLoggedIn]);
 
@@ -373,7 +371,6 @@ function BlogContent() {
         title: fullPost.title || "",
         content: fullPost.content || "",
         category: fullPost.category || "Web Development",
-        authorEmail: fullPost.author?.email || loggedInEmail,
         image: null, // Don't pre-populate image, user can upload new one
       });
 
@@ -462,7 +459,6 @@ function BlogContent() {
         title: "",
         content: "",
         category: "Web Development",
-        authorEmail: "",
         image: null,
       });
       setIsCustomCategory(false);
@@ -493,7 +489,6 @@ function BlogContent() {
       title: draft.title || "",
       content: draft.content || "",
       category: draft.category || "Web Development",
-      authorEmail: draft.author?.email || loggedInEmail || "",
       image: null,
       published: false,
     });
@@ -556,7 +551,6 @@ function BlogContent() {
         formData.append("title", newPost.title);
         formData.append("content", newPost.content);
         formData.append("category", newPost.category);
-        formData.append("authorEmail", newPost.authorEmail);
         formData.append("published", publishedStatus);
 
         if (newPost.image) {
@@ -566,6 +560,9 @@ function BlogContent() {
         response = await fetch(`${API_URL}/api/posts/create`, {
           method: "POST",
           body: formData,
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         });
       }
 
@@ -579,7 +576,6 @@ function BlogContent() {
         title: "",
         content: "",
         category: "Web Development",
-        authorEmail: "",
         image: null,
       });
       setIsCustomCategory(false);
@@ -615,6 +611,7 @@ function BlogContent() {
     setGenerating(true);
     setAiSuggestions("");
     setShowAiSuggestions(true);
+    const token = localStorage.getItem("jwt");
 
     try {
       const response = await fetch(`${API_URL}/api/posts/suggestions`, {
@@ -624,6 +621,10 @@ function BlogContent() {
           title: newPost.title,
           content: newPost.content,
         }),
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
       });
 
       const data = await response.json();
@@ -926,7 +927,6 @@ function BlogContent() {
                             title: "",
                             content: "",
                             category: "Web Development",
-                            authorEmail: loggedInEmail || "",
                             image: null,
                             published: true,
                           });
@@ -1182,7 +1182,6 @@ function BlogContent() {
                   title: "",
                   content: "",
                   category: "Web Development",
-                  authorEmail: "",
                   image: null,
                 });
                 setIsCustomCategory(false);
@@ -1206,17 +1205,6 @@ function BlogContent() {
                       value={newPost.title}
                       onChange={handleInputChange}
                       required
-                    />
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="author">Author Email</Label>
-                    <Input
-                      id="author"
-                      name="author"
-                      placeholder="Your email"
-                      readOnly
-                      value={newPost.authorEmail}
                     />
                   </div>
 
