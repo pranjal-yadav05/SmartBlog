@@ -7,34 +7,19 @@ import { Header } from "@/components/header";
 import BlogCard from "@/components/blog-card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Loader2, Search, Plus, Trash2, FileText, Upload, Sparkles, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-  DialogClose,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 import Footer from "@/components/footer";
 import LoadingScreen from "@/components/loading-screen";
+import {
+  Search,
+  Plus,
+} from "lucide-react";
+
+// Refactored Components
+import { BlogSidebar } from "@/components/blog/BlogSidebar";
+import { CreatePostDialog } from "@/components/blog/CreatePostDialog";
+import { DraftsManager } from "@/components/blog/DraftsManager";
 
 function BlogContent() {
   const API_URL = process.env.NEXT_PUBLIC_API_URL;
@@ -53,7 +38,10 @@ function BlogContent() {
   const [aiSuggestions, setAiSuggestions] = useState("");
   const [showAiSuggestions, setShowAiSuggestions] = useState(false);
   const [aiError, setAiError] = useState("");
-  const [loggedInEmail, setLoggedInEmail] = useState(null);
+
+  
+  // Changed to object to store name and email
+  const [loggedInUser, setLoggedInUser] = useState(null);
   const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [categorySearchQuery, setCategorySearchQuery] = useState("");
   const [showCategorySuggestions, setShowCategorySuggestions] = useState(false);
@@ -126,8 +114,8 @@ function BlogContent() {
       };
 
       const token = localStorage.getItem("jwt");
-      const email = decodeJWT(token);
-      setLoggedInEmail(email.email);
+      const user = decodeJWT(token);
+      setLoggedInUser(user);
     }
   }, [isLoggedIn]);
 
@@ -527,7 +515,7 @@ function BlogContent() {
         formData.append("content", newPost.content);
         formData.append("category", newPost.category);
         if (newPost.image) {
-          formData.append("image", newPost.image);
+          formData.append("imageFile", newPost.image);
         }
 
         response = await fetch(`${API_URL}/api/posts/drafts/${activeDraftId}`, {
@@ -554,7 +542,7 @@ function BlogContent() {
         formData.append("published", publishedStatus);
 
         if (newPost.image) {
-          formData.append("image", newPost.image);
+          formData.append("imageFile", newPost.image);
         }
 
         response = await fetch(`${API_URL}/api/posts/create`, {
@@ -985,7 +973,7 @@ function BlogContent() {
                       post={post}
                       onDelete={handleDeletePost}
                       onUpdate={handleUpdateClick}
-                      loggedInEmail={loggedInEmail}
+                      loggedInEmail={loggedInUser?.email}
                       isDeleting={deletingPostId === post.id}
                     />
                   ))}
@@ -1039,541 +1027,77 @@ function BlogContent() {
             </div>
 
             {/* Sidebar */}
-            <div className="w-full md:w-80 space-y-6">
-              <Card>
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <CardTitle className="text-xl">Categories</CardTitle>
-                    {categories.length > 5 && (
-                      <Badge variant="secondary" className="font-normal">
-                        {categories.length}
-                      </Badge>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <div className="relative mb-4">
-                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-gray-400" />
-                    <Input
-                      type="search"
-                      placeholder="Search categories..."
-                      className="h-9 pl-8 text-sm bg-gray-50/50 dark:bg-gray-900/50"
-                      value={categorySearchQuery}
-                      onChange={(e) => setCategorySearchQuery(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-1 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                    {categories.map((category, index) => (
-                      <div key={index}>
-                        <Link
-                          href="#"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            handleCategorySelect(category.name);
-                          }}
-                          className={`flex justify-between items-center px-2 py-2 rounded-md transition-colors ${
-                            selectedCategory === category.name 
-                              ? "bg-primary/10 text-primary font-medium" 
-                              : "hover:bg-gray-100 dark:hover:bg-gray-800"
-                          }`}>
-                          <span className="truncate mr-2">{category.name}</span>
-                          <Badge variant={selectedCategory === category.name ? "default" : "secondary"} className="h-5 min-w-[20px] px-1 justify-center shrink-0">
-                            {category.count}
-                          </Badge>
-                        </Link>
-                      </div>
-                    ))}
-                    
-                    {categories.length === 0 && (
-                      <p className="text-center py-4 text-sm text-gray-500">
-                        No categories found.
-                      </p>
-                    )}
-
-                    {categoryPage < totalCategoryPages - 1 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="w-full mt-2 text-xs text-primary"
-                        onClick={() => fetchCategories(categoryPage + 1, true)}
-                        disabled={loadingMoreCategories}
-                      >
-                        {loadingMoreCategories ? (
-                          <Loader2 className="h-3 w-3 animate-spin mr-2" />
-                        ) : null}
-                        Load More Categories
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Recent Posts</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    {recentPosts.map((post, index) => (
-                      <div key={post.id}>
-                        <Link
-                          href={`/blog/${post.id}`}
-                          className="block py-1 hover:text-primary">
-                          <p className="font-medium">{post.title}</p>
-                          <p className="text-sm text-gray-500">{post.date}</p>
-                        </Link>
-                        {index < recentPosts.length - 1 && (
-                          <Separator className="my-2" />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Subscribe</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-gray-500 mb-4">
-                    Get the top 5 posts of the week delivered right to your
-                    inbox.
-                  </p>
-                  <div className="space-y-2">
-                    <Input
-                      placeholder="Your email address"
-                      type="email"
-                      id="subscribe-email"
-                      value={subscribeEmail}
-                      onChange={(e) => setSubscribeEmail(e.target.value)}
-                    />
-                    <Button
-                      className="w-full"
-                      onClick={handleSubscribe}
-                      disabled={subscribing}>
-                      {subscribing ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Subscribing...
-                        </>
-                      ) : (
-                        "Subscribe"
-                      )}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <BlogSidebar 
+              categories={categories}
+              selectedCategory={selectedCategory}
+              handleCategorySelect={handleCategorySelect}
+              categorySearchQuery={categorySearchQuery}
+              setCategorySearchQuery={setCategorySearchQuery}
+              loadingMoreCategories={loadingMoreCategories}
+              fetchCategories={fetchCategories}
+              categoryPage={categoryPage}
+              totalCategoryPages={totalCategoryPages}
+              recentPosts={recentPosts}
+              subscribeEmail={subscribeEmail}
+              setSubscribeEmail={setSubscribeEmail}
+              handleSubscribe={handleSubscribe}
+              subscribing={subscribing}
+            />
           </div>
 
           {/* Create/Update Post Dialog */}
-          <Dialog
+          <CreatePostDialog 
             open={createDialogOpen}
-            onOpenChange={(open) => {
-              setCreateDialogOpen(open);
-              if (!open) {
-                // Reset form when dialog closes
-                setIsUpdateMode(false);
-                setPostToUpdate(null);
-                setDraftToUpdate(null);
-                setDraftIdToUpdate(null);
-                setNewPost({
-                  title: "",
-                  content: "",
-                  category: "Web Development",
-                  image: null,
-                });
-                setIsCustomCategory(false);
-              }
-            }}>
-            <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>
-                  {isUpdateMode ? "Update Blog Post" : isDraftEditMode ? "Update Draft" : "Create New Blog Post"}
-                </DialogTitle>
-              </DialogHeader>
-              <form
-                onSubmit={isUpdateMode ? handleUpdatePost : handleCreatePost}>
-                <div className="grid gap-4 py-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="title">Title</Label>
-                    <Input
-                      id="title"
-                      name="title"
-                      placeholder="Enter post title"
-                      value={newPost.title}
-                      onChange={handleInputChange}
-                      required
-                    />
-                  </div>
-
-                  <div className="grid gap-2 relative">
-                    <Label htmlFor="category">Category</Label>
-                    <div className="relative">
-                      <Input
-                        id="category"
-                        name="category"
-                        placeholder="Type to search or create category..."
-                        value={newPost.category}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setNewPost(prev => ({ ...prev, category: val }));
-                          setShowCategorySuggestions(true);
-                        }}
-                        onFocus={() => setShowCategorySuggestions(true)}
-                        onBlur={() => {
-                          // Small delay to allow clicking suggestions
-                          setTimeout(() => setShowCategorySuggestions(false), 200);
-                        }}
-                        autoComplete="off"
-                      />
-                      {showCategorySuggestions && availableCategories.concat(categories.map(c => c.name)).filter((name, index, self) => 
-                        self.indexOf(name) === index && name.toLowerCase().includes(newPost.category.toLowerCase())
-                      ).length > 0 && (
-                        <div className="absolute z-50 w-full mt-1 bg-white dark:bg-gray-900 border rounded-md shadow-lg max-h-48 overflow-y-auto">
-                          {availableCategories.concat(categories.map(c => c.name))
-                            .filter((name, index, self) => self.indexOf(name) === index && name.toLowerCase().includes(newPost.category.toLowerCase()))
-                            .map((cat, i) => (
-                              <div
-                                key={i}
-                                className="px-3 py-2 text-sm cursor-pointer hover:bg-primary/10 hover:text-primary transition-colors"
-                                onMouseDown={() => {
-                                  setNewPost(prev => ({ ...prev, category: cat }));
-                                  setShowCategorySuggestions(false);
-                                }}
-                              >
-                                {cat}
-                              </div>
-                            ))
-                          }
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="image">
-                      {(isUpdateMode || isDraftEditMode)
-                        ? "Update Image (optional)"
-                        : "Upload Image"}
-                    </Label>
-                    {isUpdateMode && postToUpdate?.imageUrl && (
-                      <div className="mb-2">
-                        <p className="text-sm text-gray-500 mb-2">
-                          Current image:
-                        </p>
-                        <img
-                          src={postToUpdate.imageUrl}
-                          alt="Current post image"
-                          className="w-full h-32 object-cover rounded-md border"
-                        />
-                        <p className="text-xs text-gray-400 mt-1">
-                          Upload a new image to replace the current one
-                        </p>
-                      </div>
-                    )}
-                    {isDraftEditMode && draftToUpdate?.imageUrl && (
-                      <div className="mb-2">
-                        <p className="text-sm text-gray-500 mb-2">
-                          Current draft image:
-                        </p>
-                        <img
-                          src={draftToUpdate.imageUrl}
-                          alt="Current draft image"
-                          className="w-full h-32 object-cover rounded-md border"
-                        />
-                        <p className="text-xs text-gray-400 mt-1">
-                          Upload a new image to replace the current one
-                        </p>
-                      </div>
-                    )}
-                    <Input
-                      id="image"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleInputChange}
-                    />
-                    {newPost.image && (
-                      <div className="mt-2">
-                        <p className="text-sm text-gray-500 mb-2">
-                          New image preview:
-                        </p>
-                        <img
-                          src={URL.createObjectURL(newPost.image)}
-                          alt="New post image preview"
-                          className="w-full h-32 object-cover rounded-md border"
-                        />
-                      </div>
-                    )}
-                  </div>
-
-                  {/* ✅ Textarea with scrollability and Markdown Guide */}
-                  <div className="grid gap-2">
-                    <div className="flex items-center justify-between">
-                      <Label htmlFor="content">Content</Label>
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="file"
-                          accept=".md"
-                          ref={markdownInputRef}
-                          className="hidden"
-                          onChange={handleMarkdownImport}
-                        />
-                        <button 
-                          type="button"
-                          onClick={() => markdownInputRef.current?.click()}
-                          className="text-xs text-primary hover:underline flex items-center gap-1"
-                        >
-                          <Upload className="h-3 w-3" /> Import Markdown
-                        </button>
-                        <button 
-                          type="button"
-                          onClick={() => setShowMarkdownGuide(!showMarkdownGuide)}
-                          className="text-xs text-primary hover:underline flex items-center gap-1"
-                        >
-                          {showMarkdownGuide ? "Hide Guide" : "Markdown Guide?"}
-                        </button>
-                      </div>
-                    </div>
-
-                    {showMarkdownGuide && (
-                      <div className="bg-gray-50 dark:bg-gray-900/50 p-5 rounded-xl border dark:border-gray-800 text-xs text-gray-600 dark:text-gray-400 mb-4 animate-in fade-in slide-in-from-top-2">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-                          <div className="space-y-3">
-                            <div>
-                              <p className="font-bold text-gray-900 dark:text-gray-200 mb-1">Structure</p>
-                              <p><span className="font-mono text-primary font-bold"># Heading 1</span> - Main Title</p>
-                              <p><span className="font-mono text-primary font-bold">## Heading 2</span> - Major Section</p>
-                              <p><span className="font-mono text-primary font-bold">### Heading 3</span> - Sub Section</p>
-                            </div>
-                            <div>
-                              <p className="font-bold text-gray-900 dark:text-gray-200 mb-1">Emphasis</p>
-                              <p><span className="font-mono text-primary font-bold">**Bold**</span> or <span className="font-mono text-primary font-bold">__Bold__</span></p>
-                              <p><span className="font-mono text-primary font-bold">*Italic*</span> or <span className="font-mono text-primary font-bold">_Italic_</span></p>
-                              <p><span className="font-mono text-primary font-bold">~~Strikethrough~~</span></p>
-                            </div>
-                          </div>
-                          <div className="space-y-3">
-                            <div>
-                              <p className="font-bold text-gray-900 dark:text-gray-200 mb-1">Lists & Links</p>
-                              <p><span className="font-mono text-primary font-bold">- List Item</span> (or <span className="font-mono text-primary font-bold">*</span> or <span className="font-mono text-primary font-bold">+</span>)</p>
-                              <p><span className="font-mono text-primary font-bold">1. Numbered Item</span></p>
-                              <p><span className="font-mono text-primary font-bold">[Link Text](URL)</span></p>
-                              <p><span className="font-mono text-primary font-bold">![Alt Text](Img URL)</span></p>
-                            </div>
-                            <div>
-                              <p className="font-bold text-gray-900 dark:text-gray-200 mb-1">Advanced</p>
-                              <p><span className="font-mono text-primary font-bold">{">"} Quote</span> - For callouts</p>
-                              <p><span className="font-mono text-pink-500 font-bold">`inline code`</span> - Single backticks</p>
-                              <p><span className="font-mono text-pink-500 font-bold">```lang</span> - Code blocks</p>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="mt-4 pt-3 border-t dark:border-gray-800 space-y-2">
-                          <p className="italic">💡 <span className="font-bold">Pro Tip:</span> Use multiple headings to structure your content better and keep readers engaged!</p>
-                          <div className="bg-primary/5 dark:bg-primary/10 p-2 rounded text-[11px] leading-relaxed border border-primary/20">
-                            <p className="font-bold text-primary mb-1">Code Block Example:</p>
-                            <p className="font-mono whitespace-pre">{"```java\npublic class Hello {\n  public static void main(String[] args) {\n    System.out.println(\"Hi!\");\n  }\n}\n```"}</p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    <Textarea
-                      id="content"
-                      name="content"
-                      placeholder="Write your blog post here and use AI for suggestions..."
-                      className="h-[250px] max-h-[400px] overflow-y-auto"
-                      value={newPost.content}
-                      onChange={handleInputChange}
-                      required
-                    />
-
-                    {/* AI Suggestions Display */}
-                    {showAiSuggestions && (
-                      <div className="mt-4 p-4 rounded-xl border border-blue-100 dark:border-blue-900/30 bg-blue-50/50 dark:bg-blue-900/10 animate-in fade-in slide-in-from-top-2">
-                        <div className="flex items-center justify-between mb-3">
-                          <h4 className="text-sm font-bold flex items-center gap-2 text-blue-700 dark:text-blue-400">
-                            <Sparkles className="h-4 w-4" /> AI Suggestions
-                          </h4>
-                          <button 
-                            onClick={() => setShowAiSuggestions(false)}
-                            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        </div>
-                        
-                        {generating ? (
-                          <div className="flex items-center justify-center py-8">
-                            <Loader2 className="h-6 w-6 animate-spin text-blue-500 mr-3" />
-                            <p className="text-sm text-blue-600 animate-pulse">Analyzing your content...</p>
-                          </div>
-                        ) : aiError ? (
-                          <div className="flex items-start gap-2 text-red-500 dark:text-red-400 py-2">
-                             <div className="mt-0.5">•</div>
-                             <p className="text-sm leading-relaxed">{aiError}</p>
-                          </div>
-                        ) : (
-                          <div className="prose prose-sm dark:prose-invert max-w-none">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                              {aiSuggestions}
-                            </ReactMarkdown>
-                          </div>
-                        )}
-                        
-                        <p className="mt-4 text-[10px] text-blue-500/70 italic text-right italic">
-                           Suggested by SmartBlog
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                <DialogFooter className="flex flex-wrap gap-2 sm:justify-end">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={handleGetAISuggestions}
-                    className="border-blue-200 hover:bg-blue-50 dark:border-blue-800 dark:hover:bg-blue-900/20 text-blue-600 dark:text-blue-400"
-                    disabled={generating}>
-                    {generating ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Analyzing...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="mr-2 h-4 w-4" />
-                        Get AI Suggestions
-                      </>
-                    )}
-                  </Button>
-                  <DialogClose asChild>
-                    <Button type="button" variant="outline" disabled={isDraftSubmitting || isPublishSubmitting}>
-                      Cancel
-                    </Button>
-                  </DialogClose>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    disabled={isDraftSubmitting || isPublishSubmitting || !newPost.title || !newPost.content}
-                    onClick={() =>
-                      isUpdateMode
-                        ? handleUpdatePost(null, false)
-                        : handleCreatePost(null, false)
-                    }>
-                    {isDraftSubmitting ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      "Save as Draft"
-                    )}
-                  </Button>
-                  <Button
-                    type="button"
-                    disabled={isDraftSubmitting || isPublishSubmitting || !newPost.title || !newPost.content}
-                    onClick={() =>
-                      isUpdateMode
-                        ? handleUpdatePost(null, true)
-                        : handleCreatePost(null, true)
-                    }>
-                    {isPublishSubmitting ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : isUpdateMode ? (
-                      "Update Post"
-                    ) : (
-                      "Publish Post"
-                    )}
-                  </Button>
-                </DialogFooter>
-              </form>
-            </DialogContent>
-          </Dialog>
+            onOpenChange={setCreateDialogOpen}
+            isUpdateMode={isUpdateMode}
+            isDraftEditMode={isDraftEditMode}
+            postToUpdate={postToUpdate}
+            draftToUpdate={draftToUpdate}
+            newPost={newPost}
+            setNewPost={setNewPost}
+            handleInputChange={handleInputChange}
+            handleCreatePost={handleCreatePost}
+            handleUpdatePost={handleUpdatePost}
+            isDraftSubmitting={isDraftSubmitting}
+            isPublishSubmitting={isPublishSubmitting}
+            availableCategories={availableCategories}
+            categories={categories}
+            handleGetAISuggestions={handleGetAISuggestions}
+            generating={generating}
+            aiSuggestions={aiSuggestions}
+            setAiSuggestions={setAiSuggestions}
+            showAiSuggestions={showAiSuggestions}
+            setShowAiSuggestions={setShowAiSuggestions}
+            aiError={aiError}
+            setAiError={setAiError}
+            user={loggedInUser}
+          />
 
           {/* Drafts Manager Dialog */}
-          <Dialog open={isDraftsManagerOpen} onOpenChange={setIsDraftsManagerOpen}>
-            <DialogContent className="max-w-4xl max-h-[80vh] overflow-x-hidden overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>My Drafts</DialogTitle>
-                <DialogDescription>
-                  Manage your unpublished posts here. You can edit or publish them.
-                </DialogDescription>
-              </DialogHeader>
-              <div className="grid gap-4 mt-4">
-                {userDrafts.length > 0 ? (
-                  userDrafts.map((draft) => (
-                    <div
-                      key={draft.id}
-                      className="flex w-full min-w-0 items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                      <div className="flex items-center flex-1 min-w-0 mr-4">
-                        {draft.imageUrl && (
-                          <img
-                            src={draft.imageUrl}
-                            alt=""
-                            className="w-12 h-12 object-cover rounded mr-4 shrink-0 border"
-                          />
-                        )}
-                        <div className="min-w-0 w-full">
-                          <h4 className="font-semibold truncate">{draft.title}</h4>
-                          <p className="text-sm text-gray-500 line-clamp-1">
-                            {stripMarkdown(draft.content)}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex gap-2 shrink-0 max-w-full">
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                          disabled={deletingDraftId === draft.id}
-                          onClick={() => handleDeleteDraft(draft.id)}>
-                          {deletingDraftId === draft.id ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="h-4 w-4" />
-                          )}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={publishingDraftId === draft.id || deletingDraftId === draft.id}
-                          onClick={() => handleEditDraft(draft)}>
-                          Edit
-                        </Button>
-                         <Button
-                          size="sm"
-                          disabled={publishingDraftId === draft.id || deletingDraftId === draft.id}
-                          onClick={async () => {
-                            try {
-                              setPublishingDraftId(draft.id);
-                              setDraftIdToUpdate(draft.id);
-                              setIsDraftEditMode(true);
-                              await handleCreatePost(null, true, draft.id);
-                            } finally {
-                              setPublishingDraftId(null);
-                            }
-                          }}>
-                          {publishingDraftId === draft.id ? (
-                            <>
-                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                              Publishing...
-                            </>
-                          ) : (
-                            "Publish"
-                          )}
-                        </Button>
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-center py-8 text-gray-500">
-                    You have no drafts at the moment.
-                  </p>
-                )}
-              </div>
-            </DialogContent>
-          </Dialog>
+          <DraftsManager 
+            isOpen={isDraftsManagerOpen}
+            onOpenChange={setIsDraftsManagerOpen}
+            drafts={userDrafts}
+            handleDeleteDraft={handleDeleteDraft}
+            handleEditDraft={handleEditDraft}
+            handlePublishDraft={(draft) => {
+              // Wrap the inline logic from before into a handler we pass down
+              // Or just pass the logic as we do here
+               (async () => {
+                  try {
+                    setPublishingDraftId(draft.id);
+                    setDraftIdToUpdate(draft.id);
+                    setIsDraftEditMode(true);
+                    await handleCreatePost(null, true, draft.id);
+                  } finally {
+                    setPublishingDraftId(null);
+                  }
+               })();
+            }}
+            deletingDraftId={deletingDraftId}
+            publishingDraftId={publishingDraftId}
+            stripMarkdown={stripMarkdown}
+          />
         </div>
       </main>
       <Footer />

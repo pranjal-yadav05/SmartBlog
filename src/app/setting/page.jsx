@@ -99,7 +99,7 @@ export default function Setting() {
       }
 
       if (image) {
-        formData.append("image", image);
+        formData.append("imageFile", image);
       }
 
       const response = await axios.put(
