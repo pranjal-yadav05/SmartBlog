@@ -1493,7 +1493,7 @@ function BlogContent() {
 
           {/* Drafts Manager Dialog */}
           <Dialog open={isDraftsManagerOpen} onOpenChange={setIsDraftsManagerOpen}>
-            <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogContent className="max-w-4xl max-h-[80vh] overflow-x-hidden overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>My Drafts</DialogTitle>
                 <DialogDescription>
@@ -1505,7 +1505,7 @@ function BlogContent() {
                   userDrafts.map((draft) => (
                     <div
                       key={draft.id}
-                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                      className="flex w-full min-w-0 items-center justify-between p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
                       <div className="flex items-center flex-1 min-w-0 mr-4">
                         {draft.imageUrl && (
                           <img
@@ -1514,14 +1514,14 @@ function BlogContent() {
                             className="w-12 h-12 object-cover rounded mr-4 shrink-0 border"
                           />
                         )}
-                        <div className="min-w-0">
+                        <div className="min-w-0 w-full">
                           <h4 className="font-semibold truncate">{draft.title}</h4>
                           <p className="text-sm text-gray-500 line-clamp-1">
                             {stripMarkdown(draft.content)}
                           </p>
                         </div>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 shrink-0 max-w-full">
                         <Button
                           size="sm"
                           variant="ghost"

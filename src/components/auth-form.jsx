@@ -77,8 +77,6 @@ const AuthForm = ({ isLogin, oauthError }) => {
           localStorage.setItem("email", t.email);
           localStorage.setItem("profileImage", t.profileImage);
         } else {
-          // Handle registration success - automatically log in
-          console.log("Registration successful");
 
           // Now perform automatic login after registration
           const loginResponse = await fetch(
@@ -109,7 +107,6 @@ const AuthForm = ({ isLogin, oauthError }) => {
           }
         }
 
-        console.log("User authenticated");
         router.push("/"); // Redirect to the home page or dashboard
       } else {
         const errorData = await response.json();
@@ -233,10 +230,6 @@ const AuthForm = ({ isLogin, oauthError }) => {
           type="button"
           className="w-full"
           onClick={() => {
-            console.log(
-              "Redirecting to Google OAuth URL:",
-              `${process.env.NEXT_PUBLIC_API_URL}/oauth2/authorization/google`
-            );
             window.location.href = `${process.env.NEXT_PUBLIC_API_URL}/oauth2/authorization/google`;
           }}>
           <svg

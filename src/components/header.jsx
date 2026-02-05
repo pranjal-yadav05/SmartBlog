@@ -95,8 +95,6 @@ export function Header() {
       url.searchParams.append("page", "0");
       url.searchParams.append("size", "10");
 
-      console.log("Searching users with URL:", url.toString());
-
       // Setup request with appropriate headers
       const options = {
         method: "GET",
@@ -115,8 +113,6 @@ export function Header() {
       if (!response.ok) {
         console.error("Search API error:", response.status);
 
-        // Try fallback search if main search fails
-        console.log("Using fallback search...");
         const fallbackResults = await fallbackSearch(query);
 
         if (fallbackResults && fallbackResults.length > 0) {
@@ -129,7 +125,6 @@ export function Header() {
       }
 
       const data = await response.json();
-      console.log("Search response data:", data);
 
       // Check if response has content property (paginated response)
       if (data.content && Array.isArray(data.content)) {
@@ -171,8 +166,6 @@ export function Header() {
       url.searchParams.append("page", "0");
       url.searchParams.append("size", "10");
 
-      console.log("Searching users by initial with URL:", url.toString());
-
       const options = {
         method: "GET",
         headers: {
@@ -202,7 +195,6 @@ export function Header() {
       }
 
       const data = await response.json();
-      console.log("Initial search response data:", data);
 
       // Process the response data similarly to regular search
       if (data.content && Array.isArray(data.content)) {
@@ -236,7 +228,6 @@ export function Header() {
   // Fallback search function for when the main search API fails
   const fallbackSearch = async (query) => {
     try {
-      console.log("Using fallback search with query:", query);
 
       // For single character searches, add wildcard-like behavior
       const searchTerm = query.trim().length === 1 ? `${query}%` : query;
@@ -266,7 +257,6 @@ export function Header() {
       }
 
       const data = await response.json();
-      console.log("Fallback search results:", data);
       return Array.isArray(data) ? data : [];
     } catch (error) {
       console.error("Error in fallback search:", error.message);
@@ -291,9 +281,6 @@ export function Header() {
     setSearchQuery("");
     setFilteredUsers([]);
 
-    // Debug log user object
-    console.log("User selected from search:", user);
-
     // Check if we have all the required fields to navigate
     if (!user || !user.email) {
       console.error(
@@ -314,7 +301,6 @@ export function Header() {
       if (user.profileImage) {
         const profileImageUrl = getProfileImageForUser(user);
         localStorage.setItem("viewedUserProfileImage", profileImageUrl);
-        console.log("Stored profile image URL:", profileImageUrl);
       } else {
         // Clear previous profile image if user doesn't have one
         localStorage.removeItem("viewedUserProfileImage");
@@ -333,13 +319,9 @@ export function Header() {
         console.error("Error stringifying user data:", jsonError);
       }
 
-      console.log("User data successfully stored in localStorage");
     } catch (error) {
       console.error("Error storing viewed user data", error);
     }
-
-    // Navigate to user profile using email
-    console.log("Navigating to profile of user:", user.email);
 
     // This is a crucial fix for the "user not found" issue - ensure the email is properly encoded
     const encodedEmail = encodeURIComponent(user.email);
@@ -397,7 +379,6 @@ export function Header() {
             </SheetTrigger>
             <SheetContent side="left" className="w-[240px] sm:w-[300px]">
               <SheetTitle className="m-5">Menu</SheetTitle>
-
               {/* User auth in sidebar for mobile */}
               {user ? (
                 <div className="flex flex-col gap-2 p-4 border-b">
@@ -420,10 +401,6 @@ export function Header() {
                       )}
                     </div>
                     <div className="font-medium">{user.name}</div>
-                  </div>
-                  <div className="flex items-center justify-between py-2 border-b">
-                    <span className="text-sm font-medium">Appearance</span>
-                    <ThemeToggle />
                   </div>
                   <Button
                     onClick={() => router.push("/profile")}
@@ -470,6 +447,10 @@ export function Header() {
                   Contact
                 </Link>
               </nav>
+              <div className="flex items-center justify-between pb-2 px-4 border-b">
+                <span className="text-sm font-medium">Appearance</span>
+                <ThemeToggle />
+              </div>
             </SheetContent>
           </Sheet>
           <Link href="/" className="flex items-center gap-2">

@@ -33,32 +33,18 @@ export default function UserProfile() {
   const [currentUserEmail, setCurrentUserEmail] = useState(null);
 
   useEffect(() => {
-    // Log the decoded email to ensure it matches the expected format
-    console.log("Profile page - decoded email parameter:", userEmail);
-
     // Get current logged in user's email
     const email = localStorage.getItem("email");
     setCurrentUserEmail(email);
 
     // Log the viewed user data from localStorage, if available
     const viewedUserEmail = localStorage.getItem("viewedUserEmail");
-    if (viewedUserEmail) {
-      console.log(
-        "Profile page - localStorage viewedUserEmail:",
-        viewedUserEmail
-      );
-    }
-
     // Fetch user profile by email
     fetchUserProfile();
-
-    // Debug log
-    console.log("Profile page loaded for email:", userEmail);
   }, []);
 
   const fetchUserProfile = async () => {
     try {
-      console.log("Fetching user profile for:", userEmail);
 
       // Try to get cached user data first
       const cachedUserData = localStorage.getItem("viewedUserData");
@@ -69,10 +55,6 @@ export default function UserProfile() {
             parsedUser.email &&
             parsedUser.email.toLowerCase() === userEmail.toLowerCase()
           ) {
-            console.log(
-              "Using cached user data from localStorage:",
-              parsedUser
-            );
             setUserData({
               name: parsedUser.name || "Unknown User",
               email: parsedUser.email,
@@ -98,7 +80,6 @@ export default function UserProfile() {
       }
 
       const users = await response.json();
-      console.log("Fetched users:", users);
 
       let user = null;
 
@@ -110,14 +91,12 @@ export default function UserProfile() {
 
         // If not found, try to find by partial match
         if (!user && users.length > 0) {
-          console.log("No exact match found, trying partial match");
           user = users[0]; // Use the first result as fallback
         }
       }
 
       // If still no user found from API, try to use localStorage data
       if (!user) {
-        console.log("No user found from API, trying localStorage data");
         const viewedUserEmail = localStorage.getItem("viewedUserEmail");
         const viewedUserName = localStorage.getItem("viewedUserName");
         const viewedUserProfileImage = localStorage.getItem(
@@ -128,7 +107,6 @@ export default function UserProfile() {
           viewedUserEmail &&
           viewedUserEmail.toLowerCase() === userEmail.toLowerCase()
         ) {
-          console.log("Using user data from localStorage");
           user = {
             name: viewedUserName || "Unknown User",
             email: viewedUserEmail,
@@ -144,7 +122,6 @@ export default function UserProfile() {
         return;
       }
 
-      console.log("Found user:", user);
 
       setUserData({
         name: user.name || "Unknown User",
@@ -167,9 +144,6 @@ export default function UserProfile() {
             parsedUser.email &&
             parsedUser.email.toLowerCase() === userEmail.toLowerCase()
           ) {
-            console.log(
-              "Recovering from JSON user data in localStorage after API error"
-            );
             setUserData({
               name: parsedUser.name || "Unknown User",
               email: parsedUser.email,
@@ -195,9 +169,6 @@ export default function UserProfile() {
         viewedUserEmail &&
         viewedUserEmail.toLowerCase() === userEmail.toLowerCase()
       ) {
-        console.log(
-          "Recovering user data from localStorage fields after API error"
-        );
         setUserData({
           name: viewedUserName || "Unknown User",
           email: viewedUserEmail,
@@ -215,7 +186,6 @@ export default function UserProfile() {
   const fetchUserPosts = async (email) => {
     try {
       setIsPostsLoading(true);
-      console.log("Fetching posts for user email:", email);
 
       // Use the paginated endpoint
       const response = await fetch(
@@ -230,7 +200,6 @@ export default function UserProfile() {
       }
 
       const data = await response.json();
-      console.log("User posts data:", data);
 
       // Handle both array and paginated response formats
       if (data.content && Array.isArray(data.content)) {

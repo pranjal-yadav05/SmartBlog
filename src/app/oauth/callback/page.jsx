@@ -14,13 +14,6 @@ function OAuthCallbackContent() {
     const token = searchParams.get("token");
     const errorMsg = searchParams.get("error");
 
-    console.log(
-      "OAuth callback received. Token exists:",
-      !!token,
-      "Error:",
-      errorMsg || "none"
-    );
-
     if (errorMsg) {
       setError(errorMsg);
       setLoading(false);
@@ -44,14 +37,8 @@ function OAuthCallbackContent() {
     try {
       // Store the token in localStorage
       localStorage.setItem("jwt", token);
-      console.log("JWT token stored in localStorage");
-
       // Decode the JWT to get user info
       const payload = JSON.parse(atob(token.split(".")[1]));
-      console.log("JWT decoded successfully, user data:", {
-        name: payload.name || "(not set)",
-        email: payload.email || "(not set)",
-      });
 
       // Store user data
       localStorage.setItem("username", payload.name || "");
@@ -79,7 +66,6 @@ function OAuthCallbackContent() {
 
       // Redirect to home page
       setLoading(false);
-      console.log("Authentication successful, redirecting to home page");
       router.push("/");
     } catch (err) {
       console.error("Error processing OAuth callback:", err);

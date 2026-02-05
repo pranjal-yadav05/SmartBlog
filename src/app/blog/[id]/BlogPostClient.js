@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
+import rehypeSanitize from "rehype-sanitize";
 
 export default function BlogPostClient({ post }) {
   const router = useRouter();
@@ -192,7 +193,7 @@ export default function BlogPostClient({ post }) {
         <article className="prose lg:prose-xl dark:prose-invert leading-relaxed max-w-none">
           <ReactMarkdown
             remarkPlugins={[remarkGfm]}
-            rehypePlugins={[rehypeRaw]}
+            rehypePlugins={[rehypeSanitize]}
             components={{
               h1: ({ node, ...props }) => (
                 <h1 className="text-4xl font-extrabold mt-12 mb-6 border-b pb-2 dark:border-gray-800" {...props} />
