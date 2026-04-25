@@ -58,7 +58,7 @@ const Contact = () => {
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col pt-10">
       <Header />
       <main className="flex-1 flex items-start justify-center px-4 md:px-6 py-8 bg-gray-100 dark:bg-gray-900">
         <div className="w-full max-w-2xl p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-md">

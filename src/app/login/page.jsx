@@ -122,7 +122,7 @@ function LoginLoading() {
 // Main page wrapper
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col pt-10">
       <Header />
       <main className="flex-1 flex items-center justify-center p-4 md:p-8">
         <Suspense fallback={<LoginLoading />}>

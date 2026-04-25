@@ -83,7 +83,7 @@ export default function UnsubscribePage() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col pt-10">
       <Header />
       <main className="flex-1 py-12 md:py-24 lg:py-32">
         <div className="w-full max-w-7xl mx-auto px-4 md:px-6">

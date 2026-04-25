@@ -11,12 +11,13 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { Menu, Search, X, UserSearch } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 import { ThemeToggle } from "./theme-toggle";
 
 export function Header() {
   const router = useRouter();
+  const pathname = usePathname();
   const [showSearch, setShowSearch] = useState(false);
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [user, setUser] = useState(null);
@@ -42,6 +43,33 @@ export function Header() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    const header = document.getElementById("smart-header");
+    if (!header) return;
+
+    let ticking = false;
+    const handleScroll = () => {
+      if (!ticking) {
+        window.requestAnimationFrame(() => {
+          // If not on the home page, force it to be a fully fixed sticky header (progress = 1)
+          const isHome = pathname === "/";
+          // Calculate progress from 0 (top) to 1 (scrolled 60px down)
+          const rawProgress = Math.min(Math.max(window.scrollY / 60, 0), 1);
+          const p = isHome ? rawProgress : 1;
+          
+          header.style.setProperty("--sp", p);
+          header.style.setProperty("--inv", 1 - p);
+          ticking = false;
+        });
+        ticking = true;
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    handleScroll(); // Initial set
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [pathname]);
 
   useEffect(() => {
     if (showSearch) {
@@ -366,9 +394,39 @@ export function Header() {
     setFilteredUsers([]);
   };
 
+  const isHome = pathname === "/";
+  const overrideVars = isHome ? {} : { "--sp": 1, "--inv": 0 };
+
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="w-full max-w-7xl mx-auto px-4 md:px-6 flex h-16 items-center justify-between">
+    <header
+      id="smart-header"
+      className="fixed top-0 z-50 w-full will-change-[padding]"
+      style={{
+        ...overrideVars,
+        paddingTop: "calc(36px * var(--inv, 1))",
+        borderBottom: "calc(1px * var(--sp, 0)) solid color-mix(in oklch, var(--border) calc(100% * var(--sp, 0)), transparent)",
+        backgroundColor: "color-mix(in oklch, var(--background) calc(95% * var(--sp, 0)), transparent)",
+        backdropFilter: "blur(calc(12px * var(--sp, 0)))",
+        WebkitBackdropFilter: "blur(calc(12px * var(--sp, 0)))",
+        transition: isHome ? "padding-top 0.15s ease-out, background-color 0.15s ease-out, border-color 0.15s ease-out, backdrop-filter 0.15s ease-out" : "none",
+      }}
+    >
+      <div
+        className="mx-auto will-change-[width,max-width,border-radius]"
+        style={{
+          ...overrideVars,
+          width: "calc(100% - (var(--inv, 1) * clamp(2rem, 5vw, 4rem)))",
+          maxWidth: "calc(1024px + (var(--sp, 0) * 256px))",
+          borderRadius: "calc(16px * var(--inv, 1))",
+          border: "calc(1px * var(--inv, 1)) solid color-mix(in oklch, var(--border) calc(60% * var(--inv, 1)), transparent)",
+          backgroundColor: "color-mix(in oklch, var(--background) calc(90% * var(--inv, 1)), transparent)",
+          backdropFilter: "blur(calc(16px * var(--inv, 1)))",
+          WebkitBackdropFilter: "blur(calc(16px * var(--inv, 1)))",
+          boxShadow: "0 calc(20px * var(--inv, 1)) calc(25px * var(--inv, 1)) -5px rgb(0 0 0 / 0.1)",
+          transition: isHome ? "all 0.15s ease-out" : "none",
+        }}
+      >
+        <div className="px-4 md:px-6 flex h-14 items-center justify-between">
         <div className="flex items-center gap-2 md:gap-4">
           <Sheet>
             <SheetTrigger asChild>
@@ -602,9 +660,15 @@ export function Header() {
         </div>
       </div>
 
-      {/* Mobile search overlay */}
-      {showMobileSearch && (
-        <div className="md:hidden px-4 py-3 border-t border-gray-200 dark:border-gray-800 bg-background">
+        {/* Mobile search overlay */}
+        {showMobileSearch && (
+          <div 
+            className="md:hidden px-4 py-3 border-t border-gray-200/40 dark:border-gray-700/40 bg-background/80"
+            style={{
+              borderBottomLeftRadius: "calc(16px * var(--inv, 1))",
+              borderBottomRightRadius: "calc(16px * var(--inv, 1))",
+            }}
+          >
           <div className="relative">
             <Input
               type="text"
@@ -653,6 +717,7 @@ export function Header() {
           <div className="relative">{renderSearchResults()}</div>
         </div>
       )}
+      </div>
     </header>
   );
 

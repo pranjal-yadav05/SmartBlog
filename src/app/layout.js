@@ -39,6 +39,9 @@ export default function RootLayout({ children }) {
           enableSystem
           disableTransitionOnChange
         >
+          {/* Fixed ambient glow orbs — heygaia.io style */}
+          <div className="viewport-glow-top" aria-hidden="true" />
+          <div className="viewport-glow-bottom" aria-hidden="true" />
           <ToastProvider>
             {children}
           </ToastProvider>
