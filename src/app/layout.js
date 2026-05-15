@@ -38,17 +38,23 @@ export default function RootLayout({ children }) {
       </head>
 
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-black text-white overflow-x-hidden`}>
+        className={`${geistSans.variable} ${geistMono.variable} antialiased overflow-x-hidden`}
+      >
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
-          disableTransitionOnChange>
+          disableTransitionOnChange
+        >
+          {/* ambient glows */}
+          <div className="viewport-glow-top" aria-hidden="true" />
+          <div className="viewport-glow-bottom" aria-hidden="true" />
+
           <ToastProvider>
             <main className="relative min-h-screen overflow-hidden">
               {children}
 
-              <BlurStack className="pointer-events-none fixed bottom-0 left-0 right-0 h-40 z-50" />
+              <BlurStack className="pointer-events-none fixed bottom-0 left-0 right-0 h-50 z-50" />
             </main>
           </ToastProvider>
         </ThemeProvider>

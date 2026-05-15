@@ -8,6 +8,7 @@ const DEFAULT_BLUR_CONFIG = [
   { blur: 8, maskStops: [50, 62.5, 75, 87.5], zIndex: 5 },
   { blur: 16, maskStops: [62.5, 75, 87.5, 100], zIndex: 6 },
   { blur: 32, maskStops: [75, 87.5, 100, 100], zIndex: 7 },
+  { blur: 64, maskStops: [87.5, 100, 100, 100], zIndex: 8 },
 ];
 
 export default function BlurStack({
@@ -39,9 +40,6 @@ export default function BlurStack({
                 WebkitMaskImage: maskImage,
                 backdropFilter: `blur(${layer.blur}px)`,
                 WebkitBackdropFilter: `blur(${layer.blur}px)`,
-
-                // optional glass tint
-                background: "rgba(0,0,0,0.05)",
               }}
             />
           );
