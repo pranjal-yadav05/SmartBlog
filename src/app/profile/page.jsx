@@ -219,7 +219,7 @@ export default function Profile() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-screen flex-col pt-10">
         <Header />
         <main className="flex-1 flex items-center justify-center">
           <LoadingScreen message="Loading profile... Fetching your details." />;
@@ -231,7 +231,7 @@ export default function Profile() {
 
   if (!isLoggedIn) {
     return (
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-screen flex-col pt-10">
         <Header />
         <main className="flex-1 flex items-center justify-center">
           <div className="w-full max-w-7xl mx-auto px-4 md:px-6 text-center">

@@ -6,6 +6,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
 import { Header } from "@/components/header";
+import LinkPreview from "@/components/link-preview";
 import Footer from "@/components/footer";
 import { Eye, MessageSquare, Send, Loader2 } from "lucide-react";
 import LoadingScreen from "@/components/loading-screen"; // Import your loading component
@@ -129,7 +130,7 @@ export default function BlogPostClient({ post }) {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-screen flex-col pt-10">
         <Header />
         <main className="flex-1 flex items-center justify-center">
           <LoadingScreen message="Loading your blog post..." />
@@ -140,15 +141,39 @@ export default function BlogPostClient({ post }) {
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col pt-10">
       <Header />
       <main className="flex-1 container mx-auto px-6 py-12 max-w-3xl">
-        {/* Back Button */}
-        <button
-          onClick={() => router.back()}
-          className="mb-6 px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white rounded-md shadow-md hover:bg-gray-300 dark:hover:bg-gray-600 transition">
-          ← Back
-        </button>
+        {/* Back Button — fixed top-left on desktop, inline on mobile */}
+<div className="relative mb-8">
+  <button
+    onClick={() => router.back()}
+    className="
+      flex items-center gap-1.5
+      px-3 py-1.5 text-sm font-medium
+      rounded-full border
+      bg-white dark:bg-gray-900
+      border-gray-200 dark:border-gray-700
+      text-gray-600 dark:text-gray-300
+      hover:bg-gray-50 dark:hover:bg-gray-800
+      hover:border-gray-400 dark:hover:border-gray-500
+      shadow-sm hover:shadow
+      transition-all duration-150
+      md:absolute md:-left-36 md:top-0
+    "
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="14" height="14" viewBox="0 0 24 24"
+      fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M19 12H5M12 5l-7 7 7 7" />
+    </svg>
+    Back
+  </button>
+</div>
 
         {/* Blog Title */}
         <h1 className="text-5xl font-extrabold leading-tight text-center">
@@ -210,8 +235,10 @@ export default function BlogPostClient({ post }) {
               strong: ({ node, ...props }) => (
                 <strong className="font-bold text-gray-900 dark:text-white" {...props} />
               ),
-              a: ({ node, ...props }) => (
-                <a className="text-blue-600 dark:text-blue-400 font-medium underline underline-offset-4 hover:text-blue-800 dark:hover:text-blue-300 transition-colors" {...props} />
+              a: ({ node, href, children, ...props }) => (
+                <LinkPreview href={href}>
+                  {children}
+                </LinkPreview>
               ),
               ul: ({ node, ...props }) => (
                 <ul className="list-disc list-outside ml-6 mb-6 space-y-2 text-gray-700 dark:text-gray-300" {...props} />

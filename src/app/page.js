@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import ReactMarkdown from "react-markdown";
+import BlurStack from "@/components/ui/blur-stack";
 import remarkGfm from "remark-gfm";
 import {
   Card,
@@ -542,6 +543,7 @@ export default function Home() {
         </section>
       </main>
       <Footer />
+      <BlurStack className="pointer-events-none fixed bottom-0 left-0 right-0 h-50 z-50" />
     </div>
   );
 }

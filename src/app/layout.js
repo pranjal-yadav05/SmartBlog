@@ -54,7 +54,7 @@ export default function RootLayout({ children }) {
             <main className="relative min-h-screen overflow-hidden">
               {children}
 
-              <BlurStack className="pointer-events-none fixed bottom-0 left-0 right-0 h-50 z-50" />
+              <BlurStack className="pointer-events-none fixed bottom-0 left-0 right-0 h-25 z-50" />
             </main>
           </ToastProvider>
         </ThemeProvider>

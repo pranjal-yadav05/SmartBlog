@@ -406,8 +406,8 @@ export function Header() {
         paddingTop: "calc(36px * var(--inv, 1))",
         borderBottom: "calc(1px * var(--sp, 0)) solid color-mix(in oklch, var(--border) calc(100% * var(--sp, 0)), transparent)",
         backgroundColor: "color-mix(in oklch, var(--background) calc(95% * var(--sp, 0)), transparent)",
-        backdropFilter: "blur(calc(12px * var(--sp, 0)))",
-        WebkitBackdropFilter: "blur(calc(12px * var(--sp, 0)))",
+        // backdropFilter: "blur(calc(12px * var(--sp, 0)))",
+        // WebkitBackdropFilter: "blur(calc(12px * var(--sp, 0)))",
         transition: isHome ? "padding-top 0.15s ease-out, background-color 0.15s ease-out, border-color 0.15s ease-out, backdrop-filter 0.15s ease-out" : "none",
       }}
     >
@@ -420,8 +420,8 @@ export function Header() {
           borderRadius: "calc(16px * var(--inv, 1))",
           border: "calc(1px * var(--inv, 1)) solid color-mix(in oklch, var(--border) calc(60% * var(--inv, 1)), transparent)",
           backgroundColor: "color-mix(in oklch, var(--background) calc(90% * var(--inv, 1)), transparent)",
-          backdropFilter: "blur(calc(16px * var(--inv, 1)))",
-          WebkitBackdropFilter: "blur(calc(16px * var(--inv, 1)))",
+          // backdropFilter: "blur(calc(16px * var(--inv, 1)))",
+          // WebkitBackdropFilter: "blur(calc(16px * var(--inv, 1)))",
           boxShadow: "0 calc(20px * var(--inv, 1)) calc(25px * var(--inv, 1)) -5px rgb(0 0 0 / 0.1)",
           transition: isHome ? "all 0.15s ease-out" : "none",
         }}

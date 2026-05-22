@@ -859,7 +859,7 @@ function BlogContent() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-screen flex-col pt-10">
         <Header />
         <main className="flex-1 flex items-center justify-center">
           <LoadingScreen message="Loading blogs... Please wait a moment." />
@@ -871,7 +871,7 @@ function BlogContent() {
 
   if (error) {
     return (
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-screen flex-col pt-10">
         <Header />
         <main className="flex-1 py-6 md:py-10">
           <div className="w-full max-w-7xl mx-auto px-4 md:px-6 text-center">

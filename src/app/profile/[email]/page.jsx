@@ -273,7 +273,7 @@ export default function UserProfile() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen flex-col">
+      <div className="flex min-h-screen flex-col pt-10">
         <Header />
         <main className="flex-1 flex items-center justify-center">
           <LoadingScreen message="Loading profile... Fetching user details." />
@@ -308,7 +308,7 @@ export default function UserProfile() {
   const isCurrentUser = currentUserEmail === userData.email;
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col pt-10">
       <Header />
       <main className="flex flex-1">
         <section className="flex flex-1 flex-col w-full bg-gradient-to-b from-white to-gray-100 dark:from-gray-900 dark:to-gray-800">

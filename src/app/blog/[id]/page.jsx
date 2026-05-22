@@ -7,7 +7,7 @@ import LoadingScreen from "@/components/loading-screen";
 // Loading component that will be shown while the main content is loading
 function BlogPostLoading() {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col pt-10">
       <main className="flex-1 flex items-center justify-center">
         <LoadingScreen message="Fetching blog post..." />
       </main>
